@@ -6,17 +6,45 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error);
+      }
+      if (data) {
+        setProfile(data);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching profile:', err);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user?.id) {
+      await fetchProfile(user.id);
+    }
+  };
+
   useEffect(() => {
-    // Check active session on load
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         setSession(session);
         setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
       } catch (error) {
         console.error('Error fetching session:', error);
       } finally {
@@ -26,10 +54,14 @@ export function AuthProvider({ children }) {
 
     initializeAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
       setLoading(false);
     });
 
@@ -44,6 +76,7 @@ export function AuthProvider({ children }) {
       password,
     });
     if (error) throw error;
+    // Profile will be automatically fetched by onAuthStateChange listener
     return data;
   };
 
@@ -58,12 +91,21 @@ export function AuthProvider({ children }) {
       },
     });
     if (error) throw error;
+
+    // Wait a brief moment for the database trigger to execute
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    if (data?.user) {
+      await fetchProfile(data.user.id);
+    }
+    
     return data;
   };
 
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    setProfile(null);
     toast.success('Logged out successfully');
   };
 
@@ -83,6 +125,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
+    profile,
     session,
     loading,
     login,
@@ -90,6 +133,7 @@ export function AuthProvider({ children }) {
     logout,
     resetPassword,
     updatePassword,
+    refreshProfile
   };
 
   return (
