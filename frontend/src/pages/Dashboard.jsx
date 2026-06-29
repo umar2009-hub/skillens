@@ -2,8 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { pageTransition } from '@/constants/animations';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { LayoutDashboard, Flame, BookOpen, BrainCircuit, Clock, ArrowRight } from 'lucide-react';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import { LayoutDashboard, Flame, BookOpen, BrainCircuit, Clock, ArrowRight, MessageSquare } from 'lucide-react';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 
