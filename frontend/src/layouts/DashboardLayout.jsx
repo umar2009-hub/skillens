@@ -4,6 +4,7 @@ import { LayoutDashboard, Upload, MessageSquare, PieChart, BrainCircuit, Setting
 import { ROUTES } from '@/constants/routes';
 import { cn } from '@/utils/cn';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 
 const sidebarLinks = [
   { icon: LayoutDashboard, label: 'Dashboard', to: ROUTES.DASHBOARD },
@@ -15,6 +16,7 @@ const sidebarLinks = [
 
 export function DashboardLayout() {
   const location = useLocation();
+  const { logout } = useAuth();
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden selection:bg-primary/30">
@@ -62,7 +64,7 @@ export function DashboardLayout() {
             <Settings size={18} className="opacity-70" />
             <span className="text-sm font-medium">Settings</span>
           </Link>
-          <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-red-400 hover:bg-red-500/10 hover:text-red-300">
+          <button onClick={logout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-red-400 hover:bg-red-500/10 hover:text-red-300">
             <LogOut size={18} className="opacity-70" />
             <span className="text-sm font-medium">Logout</span>
           </button>

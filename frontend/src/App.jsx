@@ -19,19 +19,31 @@ import { Analytics } from '@/pages/Analytics';
 import { Quiz } from '@/pages/Quiz';
 import { Settings } from '@/pages/Settings';
 import { NotFound } from '@/pages/NotFound';
+import { Login } from '@/pages/auth/Login';
+import { Register } from '@/pages/auth/Register';
+import { ForgotPassword } from '@/pages/auth/ForgotPassword';
+import { ResetPassword } from '@/pages/auth/ResetPassword';
+
+import { AuthProvider } from '@/contexts/AuthContext';
 
 function App() {
   useTheme(); // Initialize theme
   return (
-    <>
+    <AuthProvider>
       <Toaster position="top-right" />
       <Routes>
         <Route element={<LandingLayout />}>
           <Route path={ROUTES.HOME} element={<Landing />} />
         </Route>
 
-        <Route element={<AuthLayout />}>
-          {/* <Route path={ROUTES.LOGIN} element={<Login />} /> */}
+        {/* Public Routes for Authentication */}
+        <Route element={<PublicRoute />}>
+          <Route element={<AuthLayout />}>
+            <Route path={ROUTES.LOGIN} element={<Login />} />
+            <Route path={ROUTES.REGISTER} element={<Register />} />
+            <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+            <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
+          </Route>
         </Route>
 
         <Route element={<ProtectedRoute />}>
@@ -47,7 +59,7 @@ function App() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </>
+    </AuthProvider>
   )
 }
 
