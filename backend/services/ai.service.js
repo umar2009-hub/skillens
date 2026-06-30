@@ -114,7 +114,28 @@ const aiService = {
         throw new Error("Validation Failed: 'estimated_study_time' must contain numeric 'hours' and 'minutes'.");
       }
     }
-    // Future stages (notes, flashcards, etc.) will add their validation logic here.
+
+    if (stage === require('../config/aiStages').NOTES) {
+      if (!data.title || typeof data.title !== 'string') {
+        throw new Error("Validation Failed: 'title' is missing or invalid.");
+      }
+      if (!data.overview || typeof data.overview !== 'string') {
+        throw new Error("Validation Failed: 'overview' is missing.");
+      }
+      if (!Array.isArray(data.sections)) {
+        throw new Error("Validation Failed: 'sections' must be an array.");
+      }
+      data.sections.forEach((section, index) => {
+        if (!section.heading || typeof section.heading !== 'string') {
+          throw new Error(`Validation Failed: 'heading' missing in section ${index}`);
+        }
+        if (!section.concept_explanation || typeof section.concept_explanation !== 'string') {
+          throw new Error(`Validation Failed: 'concept_explanation' missing in section ${index}`);
+        }
+      });
+    }
+
+    // Future stages (flashcards, etc.) will add their validation logic here.
   }
 };
 

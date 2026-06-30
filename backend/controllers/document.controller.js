@@ -70,6 +70,30 @@ const documentController = {
     }
   },
 
+  getDocumentNotes: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      
+      const { createClient } = require('@supabase/supabase-js');
+      const config = require('../config');
+      const userSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+      });
+
+      const { data, error } = await userSupabase
+        .from('document_notes')
+        .select('*')
+        .eq('document_id', id)
+        .single();
+        
+      if (error) throw error;
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
   cancelDocument: async (req, res) => {
     try {
       const { id } = req.params;

@@ -38,54 +38,65 @@ const documentPipelineService = {
         .from('documents')
         .update({
           status: 'ai_processing',
-          processing_stage: 'Generating AI Summary',
+          processing_stage: 'Generating AI Assets',
           processing_progress: 50
         })
         .eq('id', documentId);
 
-      // 4. Generate AI Summary
-      let aiResult;
+      // --- FEATURE: SUMMARY ---
       try {
-        aiResult = await aiService.generateStructuredOutput({
+        const aiSummaryResult = await aiService.generateStructuredOutput({
           stage: AI_STAGES.SUMMARY,
           text: extractedData.extractedText || '',
           prompt: summaryPrompt
         });
+        await summaryService.saveSummary(documentId, accessToken, {
+          userId,
+          ...aiSummaryResult.data,
+          model_name: aiSummaryResult.model_name,
+          processing_time_ms: aiSummaryResult.processing_time_ms,
+          status: 'completed',
+          retry_count: 0
+        });
       } catch (aiError) {
-        // AI Generation Failed
-        logger.error(`[Pipeline] AI Generation Failed for ${documentId}`, aiError);
-        
-        // Save failed summary state
+        logger.error(`[Pipeline] AI Summary Generation Failed for ${documentId}`, aiError);
         await summaryService.saveSummary(documentId, accessToken, {
           userId,
           status: 'failed',
           error_message: aiError.message,
-          retry_count: 1 // since it already retried internally
+          retry_count: 1
         });
-
-        // Set document status to summary_failed, preserving extracted text
-        await userSupabase
-          .from('documents')
-          .update({
-            status: 'summary_failed',
-            processing_stage: 'AI Summary Failed'
-          })
-          .eq('id', documentId);
-          
-        throw aiError;
       }
 
-      // 5. AI Generation Succeeded -> Save Summary
-      await summaryService.saveSummary(documentId, accessToken, {
-        userId,
-        ...aiResult.data,
-        model_name: aiResult.model_name,
-        processing_time_ms: aiResult.processing_time_ms,
-        status: 'completed',
-        retry_count: 0
-      });
+      // --- FEATURE: SMART NOTES ---
+      const notesService = require('./notes.service');
+      const notesPrompt = require('../prompts/notesPrompt');
+      
+      try {
+        const aiNotesResult = await aiService.generateStructuredOutput({
+          stage: AI_STAGES.NOTES,
+          text: extractedData.extractedText || '',
+          prompt: notesPrompt
+        });
+        await notesService.saveNotes(documentId, accessToken, {
+          userId,
+          ...aiNotesResult.data,
+          model_name: aiNotesResult.model_name,
+          processing_time_ms: aiNotesResult.processing_time_ms,
+          status: 'completed',
+          retry_count: 0
+        });
+      } catch (notesError) {
+        logger.error(`[Pipeline] AI Notes Generation Failed for ${documentId}`, notesError);
+        await notesService.saveNotes(documentId, accessToken, {
+          userId,
+          status: 'failed',
+          error_message: notesError.message,
+          retry_count: 1
+        });
+      }
 
-      // 6. Mark Document as Completed
+      // 6. Mark Document as Completed (Pipeline finished)
       await userSupabase
         .from('documents')
         .update({
@@ -95,7 +106,7 @@ const documentPipelineService = {
         })
         .eq('id', documentId);
 
-      logger.info(`[Pipeline] Pipeline finished successfully for ${documentId}`);
+      logger.info(`[Pipeline] Pipeline finished for ${documentId}`);
       
       return {
         documentId,

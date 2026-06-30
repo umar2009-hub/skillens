@@ -6,6 +6,8 @@ import { UploadSuccessState } from '@/components/upload/UploadSuccessState';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
+import { useDocumentNotes } from '@/hooks/useDocumentNotes';
+import { NotesViewer } from '@/components/document/NotesViewer';
 
 export function DocumentDetail() {
   const { id } = useParams();
@@ -27,7 +29,21 @@ export function DocumentDetail() {
         </Button>
       </div>
 
-      <UploadSuccessState documentId={id} />
+      <div className="space-y-12 pb-20">
+        <UploadSuccessState documentId={id} />
+        
+        <NotesSection documentId={id} />
+      </div>
     </motion.div>
+  );
+}
+
+function NotesSection({ documentId }) {
+  const { notes, loading, error } = useDocumentNotes(documentId);
+
+  return (
+    <div className="max-w-5xl mx-auto mt-12 w-full px-4 md:px-0">
+      <NotesViewer notes={notes} loading={loading} error={error} />
+    </div>
   );
 }
