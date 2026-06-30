@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/Card';
 import { Brain, FileText, LayoutList, Layers, HelpCircle, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export function AIConfidencePanel({ isProcessing }) {
+export function AIConfidencePanel({ isProcessing, realStats }) {
   // Counters for simulated numbers
   const [stats, setStats] = useState({
     pages: 0,
@@ -18,10 +18,12 @@ export function AIConfidencePanel({ isProcessing }) {
   useEffect(() => {
     if (!isProcessing) return;
 
+    const actualPages = realStats?.pageCount || 15;
+
     // Simulate increasing numbers
     const interval = setInterval(() => {
       setStats(prev => ({
-        pages: Math.min(15, prev.pages + 1),
+        pages: Math.min(actualPages, prev.pages + 1),
         concepts: Math.min(32, prev.concepts + Math.floor(Math.random() * 3)),
         topics: Math.min(8, prev.topics + (Math.random() > 0.7 ? 1 : 0)),
         definitions: Math.min(41, prev.definitions + Math.floor(Math.random() * 4)),
@@ -32,13 +34,13 @@ export function AIConfidencePanel({ isProcessing }) {
     }, 400);
 
     return () => clearInterval(interval);
-  }, [isProcessing]);
+  }, [isProcessing, realStats]);
 
   const items = [
-    { label: 'Pages Detected', value: stats.pages, icon: FileText, target: 15 },
-    { label: 'Concepts Found', value: stats.concepts, icon: Brain, target: 32 },
-    { label: 'Key Topics', value: stats.topics, icon: LayoutList, target: 8 },
-    { label: 'Definitions', value: stats.definitions, icon: FileText, target: 41 },
+    { label: 'Pages Detected', value: stats.pages, icon: FileText, target: realStats?.pageCount || 15 },
+    { label: 'Words Analyzed', value: realStats ? Math.min(stats.pages * 300, realStats.wordCount) : stats.pages * 300, icon: Brain, target: realStats?.wordCount || 5000 },
+    { label: 'Reading Time (m)', value: realStats?.estimatedReadingTime || 25, icon: LayoutList, target: realStats?.estimatedReadingTime || 25 },
+    { label: 'Language', value: realStats?.language || 'English', icon: FileText, target: realStats?.language || 'English' },
     { label: 'Est. Flashcards', value: stats.flashcards, icon: Layers, target: 58 },
     { label: 'Quiz Questions', value: stats.questions, icon: HelpCircle, target: 20 },
   ];

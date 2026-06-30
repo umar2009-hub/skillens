@@ -1,4 +1,3 @@
-import axios from 'react-hot-toast'; // wrong import, fix below
 import _axios from 'axios';
 import { API_ENDPOINTS } from '@/constants/api';
 

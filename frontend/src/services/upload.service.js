@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import api from './api';
 
 export const uploadService = {
   uploadDocument: async (file, userId) => {
@@ -44,6 +45,22 @@ export const uploadService = {
     } catch (error) {
       console.error('Upload Error:', error);
       throw error;
+    }
+  },
+
+  extractDocument: async (documentId, storagePath) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await api.post('/documents/extract', {
+        documentId,
+        storagePath,
+        accessToken: session?.access_token
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Extraction Error:', error);
+      throw new Error(error?.response?.data?.error || 'Extraction failed');
     }
   }
 };

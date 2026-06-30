@@ -37,6 +37,7 @@ export function Upload() {
   const [processingStep, setProcessingStep] = useState(0);
   const [liveMessage, setLiveMessage] = useState("");
   const [uploadedDocs, setUploadedDocs] = useState([]); // store successful docs
+  const [docStats, setDocStats] = useState(null);
 
   const handleFilesSelected = (newFiles) => {
     setError(null);
@@ -64,7 +65,6 @@ export function Upload() {
     // 1. Perform Real Upload to Supabase
     const successfulUploads = [];
     try {
-      // Process files sequentially to maintain order and simplify error handling
       for (const file of files) {
         const doc = await uploadService.uploadDocument(file, user.id);
         successfulUploads.push(doc);
@@ -74,25 +74,53 @@ export function Upload() {
       console.error(err);
       toast.error(err.message || 'Upload failed. Please try again.');
       setStatus('idle');
-      return; // Stop here if upload fails
+      return; 
     }
 
-    // 2. Upload Successful -> Transition to Processing Animation
+    // 2. Perform Extraction for the first document
+    let stats = null;
+    try {
+      setLiveMessage("Extracting text and metadata...");
+      const docToExtract = successfulUploads[0];
+      stats = await uploadService.extractDocument(docToExtract.id, docToExtract.storage_path);
+      setDocStats(stats);
+    } catch (err) {
+      console.error(err);
+      toast.error('Extraction failed, but upload succeeded.');
+      setStatus('idle');
+      return;
+    }
+
+    // 3. Extraction Successful -> Transition to Processing Animation
     setStatus('processing');
     setProcessingStep(0);
 
+    const actualPageCount = stats?.pageCount || 1;
+    const dynamicMessages = [
+      "Initializing AI Engine...",
+      `Reading page 1 of ${actualPageCount}...`,
+      `Reading page ${Math.ceil(actualPageCount/2)} of ${actualPageCount}...`,
+      `Finished reading ${actualPageCount} pages...`,
+      `Analyzing ${stats?.wordCount || 100} words...`,
+      "Extracting important definitions...",
+      "Generating smart flashcards...",
+      "Building quiz questions...",
+      "Preparing personalized learning profile...",
+      "Finalizing outputs..."
+    ];
+
     let step = 0;
     let msgIndex = 0;
-    const maxSteps = 8; // 0 to 8
+    const maxSteps = 8; 
     
-    setLiveMessage(mockMessages[0]);
+    setLiveMessage(dynamicMessages[0]);
 
     const interval = setInterval(() => {
       step++;
       setProcessingStep(step);
       
-      msgIndex = (msgIndex + 1) % mockMessages.length;
-      setLiveMessage(mockMessages[msgIndex]);
+      msgIndex = (msgIndex + 1) % dynamicMessages.length;
+      setLiveMessage(dynamicMessages[msgIndex]);
       
       if (step >= maxSteps) {
         clearInterval(interval);
@@ -111,6 +139,7 @@ export function Upload() {
     setError(null);
     setLiveMessage("");
     setUploadedDocs([]);
+    setDocStats(null);
   };
 
   return (
@@ -180,7 +209,7 @@ export function Upload() {
                 <ProcessingTimeline currentStepIndex={processingStep} liveMessage={liveMessage} />
               </div>
               <div className="md:col-span-5 lg:col-span-4">
-                <AIConfidencePanel isProcessing={status === 'processing'} />
+                <AIConfidencePanel isProcessing={status === 'processing'} realStats={docStats} />
               </div>
             </div>
           </motion.div>
