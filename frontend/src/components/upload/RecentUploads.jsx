@@ -61,22 +61,40 @@ export function RecentUploads() {
   }, [user]);
 
   const handleRetry = async (id) => {
+    setUploads(prev => prev.map(item => item.id === id ? { ...item, status: 'queued' } : item));
     toast.loading('Initiating retry...', { id: 'retry-toast' });
     try {
       await uploadService.retryDocument(id);
       toast.success('Retry initiated!', { id: 'retry-toast' });
     } catch (err) {
       toast.error('Failed to retry document', { id: 'retry-toast' });
+      fetchUploads();
     }
   };
 
   const handleCancel = async (id) => {
+    setUploads(prev => prev.map(item => item.id === id ? { ...item, status: 'cancelled' } : item));
     toast.loading('Cancelling...', { id: 'cancel-toast' });
     try {
       await uploadService.cancelDocument(id);
       toast.success('Cancelled successfully', { id: 'cancel-toast' });
     } catch (err) {
       toast.error('Failed to cancel', { id: 'cancel-toast' });
+      fetchUploads();
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this document? This cannot be undone.")) return;
+    
+    setUploads(prev => prev.filter(item => item.id !== id));
+    toast.loading('Deleting document...', { id: 'delete-toast' });
+    try {
+      await uploadService.deleteDocument(id);
+      toast.success('Document deleted successfully', { id: 'delete-toast' });
+    } catch (err) {
+      toast.error('Failed to delete document', { id: 'delete-toast' });
+      fetchUploads();
     }
   };
 
@@ -187,7 +205,11 @@ export function RecentUploads() {
                 )}
                 
                 {(!statusInfo.canRetry && !statusInfo.canCancel) && (
-                  <button disabled className="w-8 h-8 rounded-lg bg-red-500/5 text-red-400/30 flex items-center justify-center transition-colors opacity-50 cursor-not-allowed group-hover:bg-red-500/10 group-hover:text-red-400/70">
+                  <button 
+                    onClick={() => handleDelete(item.id)}
+                    className="w-8 h-8 rounded-lg bg-red-500/5 text-red-400/50 flex items-center justify-center transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    title="Delete Document"
+                  >
                     <Trash2 size={14} />
                   </button>
                 )}

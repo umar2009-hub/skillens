@@ -135,7 +135,19 @@ const aiService = {
       });
     }
 
-    // Future stages (flashcards, etc.) will add their validation logic here.
+    if (stage === require('../config/aiStages').FLASHCARDS) {
+      if (!Array.isArray(data.cards)) {
+        throw new Error("Validation Failed: 'cards' must be an array.");
+      }
+      data.cards.forEach((card, index) => {
+        if (!card.id || typeof card.id !== 'string') throw new Error(`Validation Failed: 'id' missing in card ${index}`);
+        if (!card.topic || typeof card.topic !== 'string') throw new Error(`Validation Failed: 'topic' missing in card ${index}`);
+        if (!card.question || typeof card.question !== 'string') throw new Error(`Validation Failed: 'question' missing in card ${index}`);
+        if (!card.answer || typeof card.answer !== 'string') throw new Error(`Validation Failed: 'answer' missing in card ${index}`);
+        if (!card.concept_explanation || typeof card.concept_explanation !== 'string') throw new Error(`Validation Failed: 'concept_explanation' missing in card ${index}`);
+        if (!card.difficulty || typeof card.difficulty !== 'string') throw new Error(`Validation Failed: 'difficulty' missing in card ${index}`);
+      });
+    }
   }
 };
 

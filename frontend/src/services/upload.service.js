@@ -90,5 +90,19 @@ export const uploadService = {
       console.error('Cancel Error:', error);
       throw new Error(error?.response?.data?.error || 'Cancellation failed');
     }
+  },
+
+  deleteDocument: async (documentId) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await api.delete(`/documents/${documentId}`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Delete Error:', error);
+      throw new Error(error?.response?.data?.error || 'Deletion failed');
+    }
   }
 };

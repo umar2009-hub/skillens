@@ -96,6 +96,34 @@ const documentPipelineService = {
         });
       }
 
+      // --- FEATURE: FLASHCARDS ---
+      const flashcardsService = require('./flashcards.service');
+      const flashcardsPrompt = require('../prompts/flashcardsPrompt');
+      
+      try {
+        const aiFlashcardsResult = await aiService.generateStructuredOutput({
+          stage: AI_STAGES.FLASHCARDS,
+          text: extractedData.extractedText || '',
+          prompt: flashcardsPrompt
+        });
+        await flashcardsService.saveFlashcards(documentId, accessToken, {
+          userId,
+          ...aiFlashcardsResult.data,
+          model_name: aiFlashcardsResult.model_name,
+          processing_time_ms: aiFlashcardsResult.processing_time_ms,
+          status: 'completed',
+          retry_count: 0
+        });
+      } catch (flashcardsError) {
+        logger.error(`[Pipeline] AI Flashcards Generation Failed for ${documentId}`, flashcardsError);
+        await flashcardsService.saveFlashcards(documentId, accessToken, {
+          userId,
+          status: 'failed',
+          error_message: flashcardsError.message,
+          retry_count: 1
+        });
+      }
+
       // 6. Mark Document as Completed (Pipeline finished)
       await userSupabase
         .from('documents')
