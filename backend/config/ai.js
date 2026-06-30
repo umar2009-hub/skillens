@@ -1,0 +1,6 @@
+const AI_CONFIG = {
+  MAX_SUMMARY_INPUT: 25000,
+  MIN_LOADING_TIME: 3000
+};
+
+module.exports = AI_CONFIG;

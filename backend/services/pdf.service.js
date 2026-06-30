@@ -96,7 +96,8 @@ const pdfService = {
         characterCount: updatedDoc.character_count,
         estimatedReadingTime: updatedDoc.estimated_reading_time,
         language: updatedDoc.language,
-        status: updatedDoc.status
+        status: updatedDoc.status,
+        extractedText: updatedDoc.extracted_text
       };
 
     } catch (error) {

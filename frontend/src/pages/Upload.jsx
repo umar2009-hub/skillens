@@ -3,39 +3,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { pageTransition } from '@/constants/animations';
 import { UploadDropzone } from '@/components/upload/UploadDropzone';
 import { UploadQueue } from '@/components/upload/UploadQueue';
-import { ProcessingTimeline } from '@/components/upload/ProcessingTimeline';
+import { ProcessingCard } from '@/components/upload/ProcessingCard';
 import { UploadSuccessState } from '@/components/upload/UploadSuccessState';
 import { UploadErrorState } from '@/components/upload/UploadErrorState';
 import { RecentUploads } from '@/components/upload/RecentUploads';
 import { UploadStatistics } from '@/components/upload/UploadStatistics';
-import { AIConfidencePanel } from '@/components/upload/AIConfidencePanel';
+
 import { Button } from '@/components/ui/Button';
-import { Upload as UploadIcon, Loader2 } from 'lucide-react';
+import { Upload as UploadIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadService } from '@/services/upload.service';
+import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
-
-const mockMessages = [
-  "Initializing AI Engine...",
-  "Reading page 2 of 15...",
-  "Detected 12 concepts...",
-  "Reading page 7 of 15...",
-  "Extracting important definitions...",
-  "Generating 34 flashcards...",
-  "Building 10 quiz questions...",
-  "Generating 58 flashcards...",
-  "Building 20 quiz questions...",
-  "Preparing personalized learning profile...",
-  "Finalizing outputs..."
-];
 
 export function Upload() {
   const { user } = useAuth();
   const [files, setFiles] = useState([]);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState('idle'); // idle | uploading | processing | success
-  const [processingStep, setProcessingStep] = useState(0);
-  const [liveMessage, setLiveMessage] = useState("");
   const [uploadedDocs, setUploadedDocs] = useState([]); // store successful docs
   const [docStats, setDocStats] = useState(null);
 
@@ -49,7 +34,7 @@ export function Upload() {
   };
 
   const handleRemoveFile = (fileToRemove) => {
-    setFiles(prev => prev.filter(f => f !== fileToRemove));
+    setFiles(files.filter(f => f !== fileToRemove));
   };
 
   const handleStartUpload = async () => {
@@ -77,67 +62,60 @@ export function Upload() {
       return; 
     }
 
-    // 2. Perform Extraction for the first document
-    let stats = null;
+    // 2. Start Pipeline
+    setStatus('processing');
+    const docToExtract = successfulUploads[0];
+    
+    // Initial state
+    setDocStats({ 
+      id: docToExtract.id,
+      status: 'uploading',
+      processing_stage: 'Initializing AI Pipeline...',
+      processing_progress: 0
+    });
+
+    // Real-time subscription to track processing progress and stats
+    const channel = supabase
+      .channel(`doc-${docToExtract.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'documents',
+          filter: `id=eq.${docToExtract.id}`
+        },
+        (payload) => {
+          setDocStats(prev => ({ ...prev, ...payload.new }));
+        }
+      )
+      .subscribe();
+
     try {
-      setLiveMessage("Extracting text and metadata...");
-      const docToExtract = successfulUploads[0];
-      stats = await uploadService.extractDocument(docToExtract.id, docToExtract.storage_path);
-      setDocStats(stats);
+      const MIN_LOADING_TIME = 3000; // ensures the UI doesn't flash too fast
+      
+      const [result] = await Promise.all([
+        uploadService.extractDocument(docToExtract.id, docToExtract.storage_path),
+        new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME))
+      ]);
+      
+      supabase.removeChannel(channel);
+      
+      setDocStats(prev => ({ ...prev, id: result.documentId, status: 'completed' }));
+      setStatus('success');
     } catch (err) {
+      supabase.removeChannel(channel);
       console.error(err);
-      toast.error('Extraction failed, but upload succeeded.');
+      toast.error('Processing failed, but upload succeeded.');
       setStatus('idle');
       return;
     }
-
-    // 3. Extraction Successful -> Transition to Processing Animation
-    setStatus('processing');
-    setProcessingStep(0);
-
-    const actualPageCount = stats?.pageCount || 1;
-    const dynamicMessages = [
-      "Initializing AI Engine...",
-      `Reading page 1 of ${actualPageCount}...`,
-      `Reading page ${Math.ceil(actualPageCount/2)} of ${actualPageCount}...`,
-      `Finished reading ${actualPageCount} pages...`,
-      `Analyzing ${stats?.wordCount || 100} words...`,
-      "Extracting important definitions...",
-      "Generating smart flashcards...",
-      "Building quiz questions...",
-      "Preparing personalized learning profile...",
-      "Finalizing outputs..."
-    ];
-
-    let step = 0;
-    let msgIndex = 0;
-    const maxSteps = 8; 
-    
-    setLiveMessage(dynamicMessages[0]);
-
-    const interval = setInterval(() => {
-      step++;
-      setProcessingStep(step);
-      
-      msgIndex = (msgIndex + 1) % dynamicMessages.length;
-      setLiveMessage(dynamicMessages[msgIndex]);
-      
-      if (step >= maxSteps) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setStatus('success');
-          setLiveMessage("");
-        }, 1000);
-      }
-    }, 1800);
   };
 
   const handleReset = () => {
     setFiles([]);
     setStatus('idle');
-    setProcessingStep(0);
     setError(null);
-    setLiveMessage("");
     setUploadedDocs([]);
     setDocStats(null);
   };
@@ -204,20 +182,15 @@ export function Upload() {
           >
             <UploadQueue files={files} onRemoveFile={() => {}} status={status} />
             
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-              <div className="md:col-span-7 lg:col-span-8">
-                <ProcessingTimeline currentStepIndex={processingStep} liveMessage={liveMessage} />
-              </div>
-              <div className="md:col-span-5 lg:col-span-4">
-                <AIConfidencePanel isProcessing={status === 'processing'} realStats={docStats} />
-              </div>
+            <div className="w-full max-w-4xl mx-auto">
+              <ProcessingCard docStats={docStats} />
             </div>
           </motion.div>
         )}
 
         {status === 'success' && (
           <motion.div key="success" className="pt-8">
-            <UploadSuccessState onReset={handleReset} />
+            <UploadSuccessState onReset={handleReset} documentId={docStats?.id} />
             <div className="mt-20">
               <RecentUploads />
             </div>
