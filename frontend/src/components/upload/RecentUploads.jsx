@@ -1,36 +1,84 @@
 import React, { useEffect, useState } from 'react';
-import { FileText, Clock, ExternalLink, Trash2, Loader2 } from 'lucide-react';
+import { FileText, Clock, ExternalLink, Loader2, RotateCcw, XCircle, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
+import { ROUTES } from '@/constants/routes';
+import { uploadService } from '@/services/upload.service';
+import toast from 'react-hot-toast';
 
 export function RecentUploads() {
   const { user } = useAuth();
   const [uploads, setUploads] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchUploads() {
-      if (!user?.id) return;
-      try {
-        const { data, error } = await supabase
-          .from('documents')
-          .select('id, filename, created_at, status')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(4);
+  const fetchUploads = async () => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('id, filename, created_at, status')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(4);
 
-        if (!error && data) {
-          setUploads(data);
-        }
-      } catch (err) {
-        console.error('Error fetching recent uploads:', err);
-      } finally {
-        setLoading(false);
+      if (!error && data) {
+        setUploads(data);
       }
+    } catch (err) {
+      console.error('Error fetching recent uploads:', err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchUploads();
+
+    if (!user?.id) return;
+
+    // Real-time subscription to refresh on changes
+    const channel = supabase
+      .channel('recent_uploads_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'documents',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          fetchUploads();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
+
+  const handleRetry = async (id) => {
+    toast.loading('Initiating retry...', { id: 'retry-toast' });
+    try {
+      await uploadService.retryDocument(id);
+      toast.success('Retry initiated!', { id: 'retry-toast' });
+    } catch (err) {
+      toast.error('Failed to retry document', { id: 'retry-toast' });
+    }
+  };
+
+  const handleCancel = async (id) => {
+    toast.loading('Cancelling...', { id: 'cancel-toast' });
+    try {
+      await uploadService.cancelDocument(id);
+      toast.success('Cancelled successfully', { id: 'cancel-toast' });
+    } catch (err) {
+      toast.error('Failed to cancel', { id: 'cancel-toast' });
+    }
+  };
 
   const getColorClasses = (color) => {
     switch (color) {
@@ -52,10 +100,10 @@ export function RecentUploads() {
 
   const getStatusInfo = (status) => {
     const s = status?.toLowerCase() || '';
-    if (s.includes('completed')) return { label: 'Completed', color: 'emerald' };
-    if (s.includes('fail') || s.includes('error')) return { label: 'Failed', color: 'red' };
-    if (s === 'uploaded' || s === 'queued') return { label: 'Queued', color: 'white' };
-    return { label: 'Processing', color: 'primary' };
+    if (s.includes('completed')) return { label: 'Completed', color: 'emerald', canView: true };
+    if (s.includes('fail') || s.includes('error') || s.includes('cancel')) return { label: 'Failed', color: 'red', canRetry: true };
+    if (s === 'uploaded' || s === 'queued') return { label: 'Queued', color: 'white', canCancel: true };
+    return { label: 'Processing', color: 'primary', canCancel: true };
   };
 
   const formatDate = (dateStr) => {
@@ -73,7 +121,7 @@ export function RecentUploads() {
   }
 
   if (uploads.length === 0) {
-    return null; // Don't show the section if no recent uploads
+    return null;
   }
 
   return (
@@ -104,12 +152,45 @@ export function RecentUploads() {
               </div>
               
               <div className="flex items-center gap-2 flex-shrink-0">
-                <button disabled className="w-8 h-8 rounded-lg bg-white/5 text-white/30 flex items-center justify-center transition-colors opacity-50 cursor-not-allowed group-hover:bg-white/10 group-hover:text-white/70">
-                  <ExternalLink size={14} />
-                </button>
-                <button disabled className="w-8 h-8 rounded-lg bg-red-500/5 text-red-400/30 flex items-center justify-center transition-colors opacity-50 cursor-not-allowed group-hover:bg-red-500/10 group-hover:text-red-400/70">
-                  <Trash2 size={14} />
-                </button>
+                {statusInfo.canView ? (
+                  <Link 
+                    to={ROUTES.DOCUMENT.replace(':id', item.id)}
+                    className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center transition-colors hover:bg-emerald-500/20"
+                    title="View Document Summary"
+                  >
+                    <ExternalLink size={14} />
+                  </Link>
+                ) : (
+                  <button disabled className="w-8 h-8 rounded-lg bg-white/5 text-white/30 flex items-center justify-center transition-colors opacity-50 cursor-not-allowed">
+                    <ExternalLink size={14} />
+                  </button>
+                )}
+
+                {statusInfo.canRetry && (
+                  <button 
+                    onClick={() => handleRetry(item.id)}
+                    className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center transition-colors hover:bg-blue-500/20"
+                    title="Retry Processing"
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                )}
+
+                {statusInfo.canCancel && (
+                  <button 
+                    onClick={() => handleCancel(item.id)}
+                    className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center transition-colors hover:bg-red-500/20"
+                    title="Cancel Processing"
+                  >
+                    <XCircle size={14} />
+                  </button>
+                )}
+                
+                {(!statusInfo.canRetry && !statusInfo.canCancel) && (
+                  <button disabled className="w-8 h-8 rounded-lg bg-red-500/5 text-red-400/30 flex items-center justify-center transition-colors opacity-50 cursor-not-allowed group-hover:bg-red-500/10 group-hover:text-red-400/70">
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </Card>
           );

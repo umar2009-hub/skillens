@@ -68,6 +68,69 @@ const documentController = {
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }
+  },
+
+  cancelDocument: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      
+      const { createClient } = require('@supabase/supabase-js');
+      const config = require('../config');
+      const userSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+      });
+
+      const { data, error } = await userSupabase
+        .from('documents')
+        .update({ status: 'cancelled', processing_stage: 'Cancelled by user' })
+        .eq('id', id)
+        .select();
+
+      if (error) throw error;
+      return res.status(200).json({ message: 'Document processing cancelled successfully', data });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  retryDocument: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      
+      const { createClient } = require('@supabase/supabase-js');
+      const config = require('../config');
+      const userSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+      });
+
+      // 1. Fetch document to get storagePath
+      const { data: doc, error: fetchError } = await userSupabase
+        .from('documents')
+        .select('id, storage_path, status')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError || !doc) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+
+      // 2. Set back to initializing
+      await userSupabase
+        .from('documents')
+        .update({ status: 'queued', processing_stage: 'Initializing retry...', processing_progress: 0 })
+        .eq('id', id);
+
+      // 3. Kick off pipeline (fire and forget for frontend to listen via realtime)
+      documentPipelineService.processDocument(id, doc.storage_path, accessToken).catch(err => {
+         logger.error(`Retry pipeline failed for ${id}`, err);
+      });
+
+      return res.status(200).json({ message: 'Retry initiated', documentId: id });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
 };
 

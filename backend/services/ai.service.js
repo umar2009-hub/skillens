@@ -18,14 +18,18 @@ const aiService = {
    */
   generateStructuredOutput: async ({ stage, text, prompt, retryCount = 0 }) => {
     const start = Date.now();
-    const modelName = 'gemini-flash-latest';
+    
+    // Model fallback strategy: if one model is experiencing high demand (503), try the next.
+    const fallbackModels = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+    const MAX_RETRIES = 4;
+    const modelName = fallbackModels[retryCount % fallbackModels.length];
 
     try {
       if (!process.env.GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY is missing from environment variables.");
       }
 
-      logger.info(`[${stage}] Starting AI generation (Retry: ${retryCount})`);
+      logger.info(`[${stage}] Starting AI generation (Retry: ${retryCount}, Model: ${modelName})`);
 
       // 1. Large Document Strategy
       let processedText = text;
@@ -62,7 +66,7 @@ const aiService = {
       aiService._validateSchema(stage, parsedData);
 
       const processing_time_ms = Date.now() - start;
-      logger.info(`[${stage}] Generation successful in ${processing_time_ms}ms`);
+      logger.info(`[${stage}] Generation successful in ${processing_time_ms}ms with ${modelName}`);
 
       return {
         data: parsedData,
@@ -73,9 +77,12 @@ const aiService = {
     } catch (error) {
       logger.error(`[${stage}] AI Generation Error:`, error.message);
       
-      // Retry once on failure
-      if (retryCount < 1) {
-        logger.info(`[${stage}] Retrying AI generation...`);
+      if (retryCount < MAX_RETRIES) {
+        // Exponential backoff: 2s, 4s, 8s, 16s
+        const backoffMs = Math.pow(2, retryCount) * 2000;
+        logger.info(`[${stage}] Waiting ${backoffMs}ms before retrying AI generation...`);
+        
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
         return aiService.generateStructuredOutput({ stage, text, prompt, retryCount: retryCount + 1 });
       }
       

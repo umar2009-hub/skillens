@@ -23,6 +23,7 @@ import { Login } from '@/pages/auth/Login';
 import { Register } from '@/pages/auth/Register';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { ResetPassword } from '@/pages/auth/ResetPassword';
+import { DocumentDetail } from '@/pages/DocumentDetail';
 
 import { AuthProvider } from '@/contexts/AuthContext';
 
@@ -54,6 +55,7 @@ function App() {
             <Route path={ROUTES.ANALYTICS} element={<Analytics />} />
             <Route path={ROUTES.QUIZ} element={<Quiz />} />
             <Route path={ROUTES.SETTINGS} element={<Settings />} />
+            <Route path={ROUTES.DOCUMENT} element={<DocumentDetail />} />
           </Route>
         </Route>
 

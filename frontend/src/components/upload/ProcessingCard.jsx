@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Loader2, CheckCircle2, Clock, Activity, FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export function ProcessingCard({ docStats }) {
   const [elapsed, setElapsed] = useState(0);
@@ -63,6 +64,49 @@ export function ProcessingCard({ docStats }) {
   // Derived styling
   const isFailed = status === 'failed' || status === 'summary_failed';
   const isCompleted = status === 'completed';
+
+  // Reassuring Toasts
+  useEffect(() => {
+    if (isCompleted || isFailed) {
+      toast.dismiss('processing-toast');
+      return;
+    }
+
+    const messages = [
+      "Hang tight! Our AI is reading your document...",
+      "Good things take time. We're structuring your knowledge.",
+      "Almost there! Generating smart insights...",
+      "Please be patient, we are organizing your study material.",
+      "Deep diving into the core concepts...",
+      "Reading every single word (so you don't have to!)..."
+    ];
+
+    let messageIndex = 0;
+    let interval;
+    
+    const timeout = setTimeout(() => {
+      interval = setInterval(() => {
+        toast(messages[messageIndex % messages.length], {
+          icon: '💡',
+          id: 'processing-toast',
+          duration: 4000,
+          style: {
+            background: '#1a1a2e', // Premium dark background
+            color: '#fff',
+            borderRadius: '12px',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }
+        });
+        messageIndex++;
+      }, 8000);
+    }, 6000);
+
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+      toast.dismiss('processing-toast');
+    };
+  }, [isCompleted, isFailed]);
 
   return (
     <Card className="w-full bg-background/60 border-white/10 p-6 md:p-8 backdrop-blur-md overflow-hidden relative shadow-2xl">

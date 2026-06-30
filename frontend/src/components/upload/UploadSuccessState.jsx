@@ -153,13 +153,15 @@ export function UploadSuccessState({ onReset, documentId }) {
           >
             Continue to Dashboard
           </Button>
-          <Button 
-            variant="outline" 
-            className="w-full sm:w-auto h-12 px-8 text-base border-white/10 hover:bg-white/5"
-            onClick={onReset}
-          >
-            Upload Another PDF
-          </Button>
+          {onReset && (
+            <Button 
+              variant="outline" 
+              className="w-full sm:w-auto h-12 px-8 text-base border-white/10 hover:bg-white/5"
+              onClick={onReset}
+            >
+              Upload Another PDF
+            </Button>
+          )}
         </div>
       </Card>
     </motion.div>
