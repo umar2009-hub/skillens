@@ -1,105 +1,200 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageTransition } from '@/constants/animations';
-import { Card } from '@/components/ui/Card';
-import { UploadCloud, FileText, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import { UploadDropzone } from '@/components/upload/UploadDropzone';
+import { UploadQueue } from '@/components/upload/UploadQueue';
+import { ProcessingTimeline } from '@/components/upload/ProcessingTimeline';
+import { UploadSuccessState } from '@/components/upload/UploadSuccessState';
+import { UploadErrorState } from '@/components/upload/UploadErrorState';
+import { RecentUploads } from '@/components/upload/RecentUploads';
+import { UploadStatistics } from '@/components/upload/UploadStatistics';
+import { AIConfidencePanel } from '@/components/upload/AIConfidencePanel';
 import { Button } from '@/components/ui/Button';
+import { Upload as UploadIcon, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { uploadService } from '@/services/upload.service';
+import toast from 'react-hot-toast';
 
-const processingSteps = [
-  "Reading document",
-  "Extracting core concepts",
-  "Generating smart notes",
-  "Preparing adaptive quiz",
-  "Structuring revision plan"
+const mockMessages = [
+  "Initializing AI Engine...",
+  "Reading page 2 of 15...",
+  "Detected 12 concepts...",
+  "Reading page 7 of 15...",
+  "Extracting important definitions...",
+  "Generating 34 flashcards...",
+  "Building 10 quiz questions...",
+  "Generating 58 flashcards...",
+  "Building 20 quiz questions...",
+  "Preparing personalized learning profile...",
+  "Finalizing outputs..."
 ];
 
 export function Upload() {
-  const [isUploading, setIsUploading] = useState(false);
-  const [step, setStep] = useState(0);
+  const { user } = useAuth();
+  const [files, setFiles] = useState([]);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('idle'); // idle | uploading | processing | success
+  const [processingStep, setProcessingStep] = useState(0);
+  const [liveMessage, setLiveMessage] = useState("");
+  const [uploadedDocs, setUploadedDocs] = useState([]); // store successful docs
 
-  const handleUpload = () => {
-    setIsUploading(true);
-    setStep(0);
-    // Simulate processing steps
+  const handleFilesSelected = (newFiles) => {
+    setError(null);
+    setFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const handleError = (msg) => {
+    setError(msg);
+  };
+
+  const handleRemoveFile = (fileToRemove) => {
+    setFiles(prev => prev.filter(f => f !== fileToRemove));
+  };
+
+  const handleStartUpload = async () => {
+    if (files.length === 0) return;
+    if (!user) {
+      toast.error('You must be logged in to upload files');
+      return;
+    }
+    
+    setStatus('uploading');
+    setError(null);
+
+    // 1. Perform Real Upload to Supabase
+    const successfulUploads = [];
+    try {
+      // Process files sequentially to maintain order and simplify error handling
+      for (const file of files) {
+        const doc = await uploadService.uploadDocument(file, user.id);
+        successfulUploads.push(doc);
+      }
+      setUploadedDocs(successfulUploads);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Upload failed. Please try again.');
+      setStatus('idle');
+      return; // Stop here if upload fails
+    }
+
+    // 2. Upload Successful -> Transition to Processing Animation
+    setStatus('processing');
+    setProcessingStep(0);
+
+    let step = 0;
+    let msgIndex = 0;
+    const maxSteps = 8; // 0 to 8
+    
+    setLiveMessage(mockMessages[0]);
+
     const interval = setInterval(() => {
-      setStep(prev => {
-        if (prev >= processingSteps.length - 1) {
-          clearInterval(interval);
-          setTimeout(() => setIsUploading(false), 2000); // Wait a bit at the end
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1500);
+      step++;
+      setProcessingStep(step);
+      
+      msgIndex = (msgIndex + 1) % mockMessages.length;
+      setLiveMessage(mockMessages[msgIndex]);
+      
+      if (step >= maxSteps) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setStatus('success');
+          setLiveMessage("");
+        }, 1000);
+      }
+    }, 1800);
+  };
+
+  const handleReset = () => {
+    setFiles([]);
+    setStatus('idle');
+    setProcessingStep(0);
+    setError(null);
+    setLiveMessage("");
+    setUploadedDocs([]);
   };
 
   return (
-    <motion.div {...pageTransition} className="max-w-4xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white mb-1">Upload Material</h2>
-          <p className="text-muted-foreground">Add PDFs or documents to generate your custom learning plan.</p>
-        </div>
+    <motion.div {...pageTransition} className="max-w-5xl mx-auto relative min-h-[80vh]">
+      
+      {/* Premium Background Glow */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden flex justify-center -z-10">
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.15, 0.1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="w-[800px] h-[800px] rounded-full bg-gradient-to-tr from-primary/30 to-purple-600/10 blur-[100px] absolute -top-40"
+        />
+      </div>
+
+      {/* Hero Section */}
+      <div className="text-center max-w-2xl mx-auto mb-8 pt-4">
+        <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-3">Teach SkillLens</h2>
+        <p className="text-base md:text-lg text-muted-foreground">
+          Upload your study material and let SkillLens understand, organize, and personalize your learning.
+        </p>
       </div>
 
       <AnimatePresence mode="wait">
-        {!isUploading ? (
-          <motion.div key="dropzone" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}>
-            <div className="relative group cursor-pointer" onClick={handleUpload}>
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-purple-600/30 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <Card className="relative flex flex-col items-center justify-center p-20 text-center border-dashed border-2 border-white/20 bg-background/50 group-hover:border-primary/50 group-hover:bg-primary/5 transition-all duration-300 rounded-[2rem]">
-                <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-8 text-primary shadow-lg group-hover:scale-110 transition-transform duration-500">
-                  <UploadCloud size={40} className="group-hover:-translate-y-1 transition-transform duration-300" />
-                </div>
-                <h3 className="text-2xl font-bold mb-3 text-white">Click or drag file to this area</h3>
-                <p className="text-muted-foreground max-w-sm mb-8 text-lg">
-                  Support for a single or bulk upload. Strictly prohibit from uploading company data or other band files.
-                </p>
-                <div className="flex gap-4 items-center text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1"><FileText size={16}/> PDF</span>
-                  <span className="flex items-center gap-1"><FileText size={16}/> DOCX</span>
-                  <span className="flex items-center gap-1"><FileText size={16}/> TXT</span>
-                </div>
-              </Card>
+        {status === 'idle' && (
+          <motion.div 
+            key="idle" 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -10, filter: 'blur(5px)' }}
+            className="space-y-6"
+          >
+            <UploadErrorState error={error} onDismiss={() => setError(null)} />
+            <UploadDropzone onFilesSelected={handleFilesSelected} onError={handleError} />
+            <UploadQueue files={files} onRemoveFile={handleRemoveFile} status="ready" />
+            
+            {files.length > 0 && (
+              <div className="flex justify-center pt-2">
+                <Button 
+                  onClick={handleStartUpload} 
+                  className="bg-primary hover:bg-primary/90 text-white px-8 py-6 rounded-full text-lg shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:scale-105 transition-all"
+                >
+                  <UploadIcon className="mr-2" />
+                  Process Document{files.length > 1 ? 's' : ''}
+                </Button>
+              </div>
+            )}
+            
+            <div className="pt-8">
+              <UploadStatistics />
+              <RecentUploads />
             </div>
           </motion.div>
-        ) : (
-          <motion.div key="processing" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto mt-12">
-            <Card className="p-8 md:p-12 text-center relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-white/10">
-                <motion.div 
-                  className="h-full bg-gradient-to-r from-primary to-purple-500"
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${((step + 1) / processingSteps.length) * 100}%` }}
-                  transition={{ duration: 0.5 }}
-                />
+        )}
+
+        {(status === 'uploading' || status === 'processing') && (
+          <motion.div 
+            key="processing" 
+            initial={{ opacity: 0, scale: 0.95 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            exit={{ opacity: 0, scale: 0.95, filter: 'blur(5px)' }}
+            className="space-y-8"
+          >
+            <UploadQueue files={files} onRemoveFile={() => {}} status={status} />
+            
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              <div className="md:col-span-7 lg:col-span-8">
+                <ProcessingTimeline currentStepIndex={processingStep} liveMessage={liveMessage} />
               </div>
-              
-              <div className="w-24 h-24 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-8 relative">
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }} className="absolute inset-0 rounded-full border-2 border-dashed border-primary/40" />
-                <Sparkles size={40} className="text-primary animate-pulse" />
+              <div className="md:col-span-5 lg:col-span-4">
+                <AIConfidencePanel isProcessing={status === 'processing'} />
               </div>
-              
-              <h3 className="text-2xl font-bold text-white mb-8">AI is analyzing your document</h3>
-              
-              <div className="space-y-4 max-w-sm mx-auto text-left">
-                {processingSteps.map((s, i) => (
-                  <div key={i} className={`flex items-center gap-4 transition-opacity duration-300 ${i > step ? 'opacity-30' : 'opacity-100'}`}>
-                    {i < step ? (
-                      <CheckCircle2 className="text-emerald-400" size={20} />
-                    ) : i === step ? (
-                      <Loader2 className="text-primary animate-spin" size={20} />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />
-                    )}
-                    <span className={`font-medium ${i === step ? 'text-white' : 'text-muted-foreground'}`}>{s}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            </div>
+          </motion.div>
+        )}
+
+        {status === 'success' && (
+          <motion.div key="success" className="pt-8">
+            <UploadSuccessState onReset={handleReset} />
+            <div className="mt-20">
+              <RecentUploads />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
-  )
+  );
 }
