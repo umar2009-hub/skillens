@@ -11,14 +11,30 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+// CORS Configuration
+const corsOptions = {
+  origin: config.env === 'production' ? config.frontendUrl : ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('combined')); // Logger middleware
 
-// Health Route
+// Root Endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({ message: 'SkillLens API is running' });
+});
+
+// Health Route for Northflank
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', timestamp: new Date() });
+  res.status(200).json({ 
+    status: 'OK', 
+    environment: config.env,
+    version: '1.0.0',
+    timestamp: new Date() 
+  });
 });
 
 // API Versioning

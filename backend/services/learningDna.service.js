@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const config = require('../config');
+const logger = require('../utils/logger');
 
 const learningDnaService = {
   /**
@@ -8,7 +9,7 @@ const learningDnaService = {
    */
   recalculateDNA: async (userId, documentId = null, accessToken) => {
     try {
-      console.log(`[Learning DNA] Recalculating for user: ${userId}, doc: ${documentId || 'GLOBAL'}`);
+      logger.info(`[Learning DNA] Recalculating for user: ${userId}, doc: ${documentId || 'GLOBAL'}`);
       
       const supabase = createClient(config.supabaseUrl, config.supabaseKey, {
         global: { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -18,7 +19,7 @@ const learningDnaService = {
       const data = await learningDnaService._fetchRawData(userId, documentId, supabase);
       
       if (data.attempts.length === 0 && data.flashcardProgress.length === 0) {
-        console.log('[Learning DNA] No data found to calculate DNA.');
+        logger.info('[Learning DNA] No data found to calculate DNA.');
         return null;
       }
 
@@ -64,7 +65,7 @@ const learningDnaService = {
 
       if (error) throw error;
       
-      console.log(`[Learning DNA] Recalculation successful.`);
+      logger.info(`[Learning DNA] Recalculation successful.`);
       return result;
     } catch (error) {
       console.error('[Learning DNA] Error recalculating DNA:', error);
