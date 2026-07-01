@@ -1,31 +1,32 @@
 # 🚀 SkillLens Deployment Guide
 
-This guide provides the exact steps required to deploy the SkillLens ecosystem to production using **Vercel** for the frontend and **Koyeb** for the backend. (These are 100% free, do NOT require a credit card, and Koyeb does NOT put your app to sleep).
+This guide provides the exact steps required to deploy the SkillLens ecosystem to production using **Vercel** for the frontend and **Render** for the backend. (These are 100% free and do NOT require a credit card).
 
 ---
 
 ## 1. Prerequisites
 Before deploying, ensure you have active accounts for:
 - [Vercel](https://vercel.com) (Frontend hosting)
-- [Koyeb](https://www.koyeb.com/) (Backend hosting - No CC required, Always On)
+- [Render](https://render.com) (Backend hosting - No CC required)
 - [Supabase](https://supabase.com) (Database, Auth, Storage)
 - [Google AI Studio](https://aistudio.google.com/) (Gemini API)
 
 ---
 
-## 2. Backend Deployment (Koyeb.com)
+## 2. Backend Deployment (Render.com)
 
-1. Go to [Koyeb.com](https://www.koyeb.com/) and create a free account.
-2. Click **Create Web Service**.
-3. Select **GitHub** and connect your `skillens` repository.
+1. Go to [Render.com](https://render.com) and create a free account.
+2. Click **New +** -> **Web Service**.
+3. Connect your GitHub repository (`skillens`).
 4. **Configure the Service:**
-   - **Builder:** Select **Buildpack**
-   - **Run Command:** `npm start`
-   - **Work Directory:** `/backend` (This is crucial so it finds the backend package.json)
-   - **Instance Type:** Select **Eco** (Free)
-   - **Exposed Ports:** Set port to `5000` (Path `/`)
-   - **App & Service Name:** `skillens-backend`
-5. **Environment Variables:** Click "Add Variable" and add:
+   - Name: `skillens-backend`
+   - Region: Choose the closest one to you
+   - Root Directory: `backend`
+   - Environment: `Node`
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+   - Instance Type: **Free** ($0/month)
+5. **Environment Variables:** Scroll down to Advanced -> Environment Variables and add:
    - `NODE_ENV` = `production`
    - `PORT` = `5000`
    - `FRONTEND_URL` = (Wait to set this until Vercel is deployed, then paste the Vercel URL here).
@@ -33,10 +34,10 @@ Before deploying, ensure you have active accounts for:
    - `SUPABASE_ANON_KEY` = Your Supabase Anon Key
    - `GEMINI_API_KEY` = Your Gemini Key
 6. **Deploy!** 
-   - Click **Deploy**. 
-   - Once deployed, Koyeb will provide a public URL (e.g., `https://skillens-backend-yourname.koyeb.app`). Copy this URL.
+   - Click **Create Web Service**. 
+   - Once deployed, Render will provide a public URL (e.g., `https://skillens-backend.onrender.com`). Copy this URL.
 
-*(Note: Koyeb's Eco tier is "Always On" and will not go to sleep like Render, making it perfect for a fast, responsive hackathon demo).*
+*(Note: Render's free tier goes to sleep after 15 minutes of inactivity. When you open the app again, the first request might take 30-50 seconds to wake up the server).*
 
 ---
 
@@ -50,7 +51,7 @@ Before deploying, ensure you have active accounts for:
    - Build Command: `npm run build`
    - Output Directory: `dist`
 4. **Environment Variables:**
-   - `VITE_API_URL` = Paste the Koyeb URL you copied earlier (e.g., `https://skillens-backend.koyeb.app/api/v1`)
+   - `VITE_API_URL` = Paste the Render URL you copied earlier (e.g., `https://skillens-backend.onrender.com/api/v1`)
    - `VITE_SUPABASE_URL` = Your Supabase Project URL
    - `VITE_SUPABASE_ANON_KEY` = Your Supabase Anon Key
 5. **Deploy!**
@@ -61,10 +62,10 @@ Before deploying, ensure you have active accounts for:
 
 ## 4. Final Security Hookup
 
-1. Go back to **Koyeb.com**.
-2. Go to your Web Service -> Settings -> Environment Variables.
+1. Go back to **Render.com**.
+2. Go to your Web Service -> Environment.
 3. Update the `FRONTEND_URL` environment variable with your new Vercel URL (e.g., `https://skillens.vercel.app`).
-4. Click **Save Changes** (Koyeb will automatically restart the server).
+4. Click **Save Changes** (Render will automatically restart the server).
 5. **Result:** Your backend CORS policy is now strictly locked down to only accept requests from your Vercel frontend.
 
 ---
