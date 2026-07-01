@@ -10,6 +10,8 @@ import { useDocumentNotes } from '@/hooks/useDocumentNotes';
 import { NotesViewer } from '@/components/document/NotesViewer';
 import { useDocumentFlashcards } from '@/hooks/useDocumentFlashcards';
 import { FlashcardsViewer } from '@/components/document/FlashcardsViewer';
+import { useDocumentQuiz } from '@/hooks/useDocumentQuiz';
+import { QuizViewer } from '@/components/document/QuizViewer';
 
 export function DocumentDetail() {
   const { id } = useParams();
@@ -53,6 +55,14 @@ export function DocumentDetail() {
           >
             <Layers size={18} /> Adaptive Flashcards
           </button>
+          <button
+            onClick={() => setActiveTab('quiz')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'quiz' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-muted-foreground hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <BookOpen size={18} /> Adaptive Quiz
+          </button>
         </div>
 
         <div className="mt-8">
@@ -65,6 +75,11 @@ export function DocumentDetail() {
             {activeTab === 'flashcards' && (
               <motion.div key="flashcards" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                 <FlashcardsSection documentId={id} />
+              </motion.div>
+            )}
+            {activeTab === 'quiz' && (
+              <motion.div key="quiz" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                <QuizSection documentId={id} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -93,4 +108,9 @@ function FlashcardsSection({ documentId }) {
       explainFurther={explainFurther}
     />
   );
+}
+
+function QuizSection({ documentId }) {
+  const quizHook = useDocumentQuiz(documentId);
+  return <QuizViewer documentId={documentId} {...quizHook} />;
 }

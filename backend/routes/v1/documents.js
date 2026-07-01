@@ -30,6 +30,21 @@ router.post('/:id/flashcards/hint', documentController.getFlashcardHint);
 // POST /api/v1/documents/:id/flashcards/explain
 router.post('/:id/flashcards/explain', documentController.getFlashcardExplanation);
 
+// GET /api/v1/documents/:id/quiz
+router.get('/:id/quiz', documentController.getQuiz);
+
+// POST /api/v1/documents/:id/quiz/session
+router.post('/:id/quiz/session', documentController.startQuizSession);
+
+// POST /api/v1/documents/:id/quiz/attempt
+router.post('/:id/quiz/attempt', documentController.submitQuizAttempt);
+
+// POST /api/v1/documents/quiz/session/:sessionId/finish
+router.post('/quiz/session/:sessionId/finish', documentController.finishQuizSession);
+
+// GET /api/v1/documents/:id/quiz/analytics/:sessionId
+router.get('/:id/quiz/analytics/:sessionId', documentController.getQuizAnalytics);
+
 // POST /api/v1/documents/:id/retry
 router.post('/:id/retry', documentController.retryDocument);
 

@@ -1,5 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const AI_CONFIG = require('../config/ai');
+const AI_MODELS = require('../config/aiModels');
 const logger = require('../utils/logger');
 
 // Initialize Gemini
@@ -19,10 +20,16 @@ const aiService = {
   generateStructuredOutput: async ({ stage, text, prompt, retryCount = 0 }) => {
     const start = Date.now();
     
-    // Model fallback strategy: if one model is experiencing high demand (503), try the next.
-    const fallbackModels = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'];
-    const MAX_RETRIES = 4;
-    const modelName = fallbackModels[retryCount % fallbackModels.length];
+    let modelName;
+    if (retryCount === 0) {
+      // First attempt: Route based on payload size
+      modelName = text.length > AI_MODELS.LARGE_REQUEST_THRESHOLD 
+        ? AI_MODELS.LARGE_CONTEXT_MODEL 
+        : AI_MODELS.DEFAULT_MODEL;
+    } else {
+      // Retry attempt: Fallback to next available model
+      modelName = AI_MODELS.FALLBACK_MODELS[retryCount % AI_MODELS.FALLBACK_MODELS.length];
+    }
 
     try {
       if (!process.env.GEMINI_API_KEY) {
@@ -75,15 +82,82 @@ const aiService = {
       };
 
     } catch (error) {
-      logger.error(`[${stage}] AI Generation Error:`, error.message);
+      logger.error(`[${stage}] AI Generation Error with ${modelName}:`, error.message);
       
-      if (retryCount < MAX_RETRIES) {
+      const isRateLimit = error.status === 429 || error.status === 503 || error.message.includes('429') || error.message.includes('Quota');
+
+      if (retryCount < AI_MODELS.MAX_RETRIES) {
         // Exponential backoff: 2s, 4s, 8s, 16s
         const backoffMs = Math.pow(2, retryCount) * 2000;
-        logger.info(`[${stage}] Waiting ${backoffMs}ms before retrying AI generation...`);
+        logger.info(`[${stage}] ${isRateLimit ? 'Rate limit hit' : 'Error'}. Waiting ${backoffMs}ms before retrying AI generation...`);
         
         await new Promise(resolve => setTimeout(resolve, backoffMs));
         return aiService.generateStructuredOutput({ stage, text, prompt, retryCount: retryCount + 1 });
+      }
+      
+      throw error;
+    }
+  },
+
+  /**
+   * Generates a simple JSON output without strict stage validation (e.g., for hints, explanations, analytics)
+   * Uses the same dynamic routing logic as generateStructuredOutput
+   */
+  generateSimpleJSON: async ({ text, prompt, retryCount = 0 }) => {
+    const start = Date.now();
+    
+    let modelName;
+    if (retryCount === 0) {
+      modelName = (text && text.length > AI_MODELS.LARGE_REQUEST_THRESHOLD)
+        ? AI_MODELS.LARGE_CONTEXT_MODEL 
+        : AI_MODELS.DEFAULT_MODEL;
+    } else {
+      modelName = AI_MODELS.FALLBACK_MODELS[retryCount % AI_MODELS.FALLBACK_MODELS.length];
+    }
+
+    try {
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY is missing from environment variables.");
+      }
+
+      logger.info(`[SimpleJSON] Starting AI generation (Retry: ${retryCount}, Model: ${modelName})`);
+
+      const model = genAI.getGenerativeModel({ 
+        model: modelName,
+        generationConfig: {
+          responseMimeType: "application/json",
+        }
+      });
+      
+      const fullPrompt = text ? `${prompt}\n\nCONTEXT:\n${text}` : prompt;
+      const result = await model.generateContent(fullPrompt);
+      const responseText = result.response.text();
+      
+      let parsedData;
+      try {
+        // Handle potential markdown formatting from Gemini
+        let cleanText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        parsedData = JSON.parse(cleanText);
+      } catch (parseErr) {
+        throw new Error(`Failed to parse Gemini response as JSON: ${parseErr.message}`);
+      }
+
+      const processing_time_ms = Date.now() - start;
+      logger.info(`[SimpleJSON] Generation successful in ${processing_time_ms}ms with ${modelName}`);
+
+      return parsedData;
+
+    } catch (error) {
+      logger.error(`[SimpleJSON] AI Generation Error with ${modelName}:`, error.message);
+      
+      const isRateLimit = error.status === 429 || error.status === 503 || error.message.includes('429') || error.message.includes('Quota');
+
+      if (retryCount < AI_MODELS.MAX_RETRIES) {
+        const backoffMs = Math.pow(2, retryCount) * 2000;
+        logger.info(`[SimpleJSON] ${isRateLimit ? 'Rate limit hit' : 'Error'}. Waiting ${backoffMs}ms before retrying...`);
+        
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        return aiService.generateSimpleJSON({ text, prompt, retryCount: retryCount + 1 });
       }
       
       throw error;
@@ -146,6 +220,21 @@ const aiService = {
         if (!card.answer || typeof card.answer !== 'string') throw new Error(`Validation Failed: 'answer' missing in card ${index}`);
         if (!card.concept_explanation || typeof card.concept_explanation !== 'string') throw new Error(`Validation Failed: 'concept_explanation' missing in card ${index}`);
         if (!card.difficulty || typeof card.difficulty !== 'string') throw new Error(`Validation Failed: 'difficulty' missing in card ${index}`);
+      });
+    }
+
+    if (stage === require('../config/aiStages').QUIZ) {
+      if (!Array.isArray(data.questions)) {
+        throw new Error("Validation Failed: 'questions' must be an array.");
+      }
+      data.questions.forEach((q, index) => {
+        if (!q.id || typeof q.id !== 'string') throw new Error(`Validation Failed: 'id' missing in question ${index}`);
+        if (!q.type || typeof q.type !== 'string') throw new Error(`Validation Failed: 'type' missing in question ${index}`);
+        if (!q.topic || typeof q.topic !== 'string') throw new Error(`Validation Failed: 'topic' missing in question ${index}`);
+        if (!q.difficulty || typeof q.difficulty !== 'string') throw new Error(`Validation Failed: 'difficulty' missing in question ${index}`);
+        if (!q.question || typeof q.question !== 'string') throw new Error(`Validation Failed: 'question' missing in question ${index}`);
+        if (!q.correct_answer) throw new Error(`Validation Failed: 'correct_answer' missing in question ${index}`);
+        if (!q.explanation || typeof q.explanation !== 'string') throw new Error(`Validation Failed: 'explanation' missing in question ${index}`);
       });
     }
   }

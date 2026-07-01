@@ -124,6 +124,33 @@ const documentPipelineService = {
         });
       }
 
+      // --- FEATURE: QUIZ ---
+      const quizService = require('./quiz.service');
+      const quizPrompt = require('../prompts/quizPrompt');
+      
+      try {
+        const aiQuizResult = await aiService.generateStructuredOutput({
+          stage: AI_STAGES.QUIZ,
+          text: extractedData.extractedText || '',
+          prompt: quizPrompt
+        });
+        await quizService.saveQuiz(documentId, accessToken, {
+          userId,
+          ...aiQuizResult.data,
+          model_name: aiQuizResult.model_name,
+          processing_time_ms: aiQuizResult.processing_time_ms,
+          status: 'completed',
+          retry_count: 0
+        });
+      } catch (quizError) {
+        logger.error(`[Pipeline] AI Quiz Generation Failed for ${documentId}`, quizError);
+        await quizService.saveQuiz(documentId, accessToken, {
+          userId,
+          status: 'failed',
+          error_message: quizError.message,
+          retry_count: 1
+        });
+      }
       // 6. Mark Document as Completed (Pipeline finished)
       await userSupabase
         .from('documents')

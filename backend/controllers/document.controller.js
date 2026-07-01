@@ -142,16 +142,10 @@ const documentController = {
       const { question, topic } = req.body;
       if (!question) return res.status(400).json({ error: 'Question is required' });
       
-      const { GoogleGenerativeAI } = require('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { responseMimeType: "application/json" } });
-      
+      const aiService = require('../services/ai.service');
       const prompt = `You are a helpful professor. The student is stuck on a flashcard. Provide ONE single hint for the question. DO NOT reveal the answer. Return strictly JSON: {"hint": "..."}. Topic: ${topic || 'General'}. Question: ${question}`;
       
-      const result = await model.generateContent(prompt);
-      let text = result.response.text();
-      text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const data = JSON.parse(text);
+      const data = await aiService.generateSimpleJSON({ prompt });
       return res.status(200).json(data);
     } catch (error) {
       console.error('Hint API Error:', error);
@@ -164,16 +158,10 @@ const documentController = {
       const { question, answer, topic } = req.body;
       if (!question || !answer) return res.status(400).json({ error: 'Question and answer required' });
 
-      const { GoogleGenerativeAI } = require('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { responseMimeType: "application/json" } });
-      
+      const aiService = require('../services/ai.service');
       const prompt = `You are a helpful professor. Explain this flashcard in more depth. Return strictly JSON: {"explanation": "..."}. Topic: ${topic || 'General'}. Question: ${question}. Answer: ${answer}`;
       
-      const result = await model.generateContent(prompt);
-      let text = result.response.text();
-      text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const data = JSON.parse(text);
+      const data = await aiService.generateSimpleJSON({ prompt });
       return res.status(200).json(data);
     } catch (error) {
       console.error('Explain API Error:', error);
@@ -240,6 +228,146 @@ const documentController = {
 
       return res.status(200).json({ message: 'Retry initiated', documentId: id });
     } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  getQuiz: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      
+      const { createClient } = require('@supabase/supabase-js');
+      const config = require('../config');
+      const userSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+      });
+
+      const { data, error } = await userSupabase
+        .from('document_quizzes')
+        .select('*')
+        .eq('document_id', id)
+        .single();
+        
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (!data) {
+        return res.status(200).json({ status: 'processing', data: null });
+      }
+
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  startQuizSession: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { quizId } = req.body;
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      
+      const { createClient } = require('@supabase/supabase-js');
+      const config = require('../config');
+      const userSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+      });
+      const { data: { user }, error: authError } = await userSupabase.auth.getUser();
+      if (authError || !user) throw new Error("Unauthorized");
+      const userId = user.id;
+      
+      const quizService = require('../services/quiz.service');
+      const session = await quizService.startSession(id, userId, quizId, accessToken);
+      
+      return res.status(200).json(session);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  submitQuizAttempt: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const attemptData = req.body;
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      
+      const { createClient } = require('@supabase/supabase-js');
+      const config = require('../config');
+      const userSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+      });
+      const { data: { user }, error: authError } = await userSupabase.auth.getUser();
+      if (authError || !user) throw new Error("Unauthorized");
+      
+      attemptData.userId = user.id;
+      attemptData.documentId = id;
+      
+      const quizService = require('../services/quiz.service');
+      await quizService.saveAttempt(attemptData, accessToken);
+      
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  finishQuizSession: async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      
+      const quizService = require('../services/quiz.service');
+      await quizService.finishSession(sessionId, accessToken);
+      
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  getQuizAnalytics: async (req, res) => {
+    try {
+      const { id, sessionId } = req.params;
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      
+      const { createClient } = require('@supabase/supabase-js');
+      const config = require('../config');
+      const userSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+      });
+
+      // Fetch attempts for this session
+      const { data: attempts, error: fetchError } = await userSupabase
+        .from('user_quiz_attempts')
+        .select('*')
+        .eq('session_id', sessionId);
+        
+      if (fetchError) throw fetchError;
+
+      const aiService = require('../services/ai.service');
+      const prompt = `You are an intelligent tutor. Analyze this quiz session performance and generate a personalized learning report. 
+      Return STRICT JSON matching this structure:
+      {
+        "strengths": ["...", "..."],
+        "weaknesses": ["...", "..."],
+        "topics_to_revise": ["...", "..."],
+        "confidence_analysis": "...",
+        "learning_pattern": "...",
+        "suggested_study_order": ["...", "..."],
+        "estimated_revision_time_minutes": 15,
+        "motivational_feedback": "..."
+      }
+      
+      Session Data:
+      ${JSON.stringify(attempts.map(a => ({ topic: a.topic, difficulty: a.difficulty, correct: a.is_correct, confidence: a.confidence, time: a.time_taken })))}`;
+      
+      const analytics = await aiService.generateSimpleJSON({ prompt });
+      
+      return res.status(200).json({ analytics, attempts });
+    } catch (error) {
+      console.error('Quiz Analytics API Error:', error);
       return res.status(500).json({ error: error.message });
     }
   },
