@@ -16,7 +16,7 @@ SkillLens is an intelligent educational platform that transforms static PDFs int
 *   **Backend:** Node.js, Express, PDF-Parse.
 *   **Database & Auth:** Supabase (PostgreSQL, Storage, Authentication).
 *   **AI Engine:** Google Gemini Pro (`@google/generative-ai`).
-*   **Deployment Target:** Vercel (Frontend) & Northflank (Backend).
+*   **Deployment Target:** Vercel (Frontend) & Render (Backend).
 
 ## 📦 Local Installation
 
@@ -39,4 +39,4 @@ SkillLens is an intelligent educational platform that transforms static PDFs int
 
 ## 🌍 Production Deployment
 
-SkillLens is fully optimized for production deployment. Please refer to the comprehensive [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) for step-by-step instructions on deploying the stack to Vercel and Northflank.
+SkillLens is fully optimized for production deployment. Please refer to the comprehensive [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) for step-by-step instructions on deploying the stack to Vercel and Render.
