@@ -22,6 +22,27 @@ const documentController = {
     }
   },
 
+  getAllDocuments: async (req, res) => {
+    try {
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      const { createClient } = require('@supabase/supabase-js');
+      const config = require('../config');
+      const userSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+      });
+
+      const { data, error } = await userSupabase
+        .from('documents')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
   getDocument: async (req, res) => {
     try {
       const { id } = req.params;
@@ -131,6 +152,20 @@ const documentController = {
       const flashcardsService = require('../services/flashcards.service');
       await flashcardsService.updateProgress(id, flashcardId, progressData, accessToken);
       
+      // Fire and forget DNA recalculation (background)
+      const { createClient } = require('@supabase/supabase-js');
+      const config = require('../config');
+      const userSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+      });
+      userSupabase.auth.getUser().then(({ data }) => {
+        if (data && data.user) {
+          const learningDnaService = require('../services/learningDna.service');
+          learningDnaService.recalculateDNA(data.user.id, id, accessToken).catch(console.error);
+          learningDnaService.recalculateDNA(data.user.id, null, accessToken).catch(console.error);
+        }
+      });
+
       return res.status(200).json({ message: 'Progress updated' });
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -321,6 +356,21 @@ const documentController = {
       const quizService = require('../services/quiz.service');
       await quizService.finishSession(sessionId, accessToken);
       
+      // Fire and forget DNA recalculation (background)
+      const { createClient } = require('@supabase/supabase-js');
+      const config = require('../config');
+      const userSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+      });
+      userSupabase.auth.getUser().then(({ data }) => {
+        if (data && data.user) {
+           // We need documentId, but it's not in the params. The quiz service could return it.
+           // For now, we just recalculate the global DNA to be safe.
+           const learningDnaService = require('../services/learningDna.service');
+           learningDnaService.recalculateDNA(data.user.id, null, accessToken).catch(console.error);
+        }
+      });
+
       return res.status(200).json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: error.message });

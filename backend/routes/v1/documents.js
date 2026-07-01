@@ -3,6 +3,9 @@ const documentController = require('../../controllers/document.controller');
 
 const router = express.Router();
 
+// GET /api/v1/documents
+router.get('/', documentController.getAllDocuments);
+
 // POST /api/v1/documents/extract
 router.post('/extract', documentController.extractDocument);
 

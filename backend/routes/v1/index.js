@@ -7,12 +7,14 @@ router.get('/', (req, res) => {
 });
 
 router.use('/documents', require('./documents'));
+router.use('/learning-dna', require('./learningDna'));
+router.use('/mentor', require('./mentor'));
 
 // Placeholders for future routes
 // router.use('/auth', require('./auth.routes'));
 // router.use('/upload', require('./upload.routes'));
-// router.use('/mentor', require('./mentor.routes'));
-// router.use('/analytics', require('./analytics.routes'));
+router.use('/analytics', require('../../modules/analytics/analytics.routes'));
+router.use('/revision', require('../../modules/revision/revision.routes'));
 // router.use('/quiz', require('./quiz.routes'));
 
 module.exports = router;

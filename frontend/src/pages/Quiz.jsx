@@ -1,154 +1,177 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { pageTransition } from '@/constants/animations';
-import { Card } from '@/components/ui/Card';
-import { BrainCircuit, Clock, Trophy, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-
-const dummyQuestions = [
-  {
-    id: 1,
-    question: "Which of the following hooks should be used for data fetching in React?",
-    options: ["useFetch", "useEffect", "useState", "useData"],
-    correct: 1
-  },
-  {
-    id: 2,
-    question: "What is the virtual DOM?",
-    options: ["A direct copy of the real DOM", "A lightweight javascript representation of the DOM", "A browser extension", "A React component"],
-    correct: 1
-  }
-];
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { BrainCircuit, Search, FileText, ChevronRight, Clock, BookOpen, Target, Filter } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
+import api from '@/services/api';
+import { supabase } from '@/lib/supabase';
+import { ROUTES } from '@/constants/routes';
 
 export function Quiz() {
-  const [started, setStarted] = useState(false);
-  const [currentQ, setCurrentQ] = useState(0);
-  const [selected, setSelected] = useState(null);
-  const [showResult, setShowResult] = useState(false);
-  const [score, setScore] = useState(0);
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Filters and Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' | 'oldest'
 
-  const handleStart = () => setStarted(true);
-
-  const handleSelect = (index) => {
-    if (selected !== null) return;
-    setSelected(index);
-    if (index === dummyQuestions[currentQ].correct) setScore(s => s + 1);
-    
-    setTimeout(() => {
-      if (currentQ < dummyQuestions.length - 1) {
-        setCurrentQ(c => c + 1);
-        setSelected(null);
-      } else {
-        setShowResult(true);
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        setLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await api.get('/documents', {
+          headers: { Authorization: `Bearer ${session?.access_token}` }
+        });
+        setDocuments(response.data || []);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to fetch documents for quizzes.');
+      } finally {
+        setLoading(false);
       }
-    }, 1500);
-  };
+    };
+    fetchDocuments();
+  }, []);
+
+  const filteredDocuments = useMemo(() => {
+    let result = documents;
+    
+    if (searchQuery) {
+      result = result.filter(doc => doc.filename.toLowerCase().includes(searchQuery.toLowerCase()));
+    }
+    
+    if (sortOrder === 'newest') {
+      result = result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else {
+      result = result.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    }
+
+    return result;
+  }, [documents, searchQuery, sortOrder]);
 
   return (
-    <motion.div {...pageTransition} className="max-w-3xl mx-auto py-8">
-      {!started ? (
-        <Card className="flex flex-col items-center justify-center p-16 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center mb-6 text-white shadow-xl shadow-primary/30">
-            <BrainCircuit size={40} />
-          </div>
-          <h2 className="text-3xl font-bold mb-4 text-white">React Mastery Quiz</h2>
-          <p className="text-muted-foreground max-w-sm mb-8 text-lg">
-            Test your knowledge based on the "React Internals" document you uploaded. 10 questions, 5 minutes.
-          </p>
-          <div className="flex gap-6 mb-8 text-sm font-medium text-white/70 bg-white/5 px-6 py-3 rounded-full border border-white/10">
-            <span className="flex items-center gap-2"><Trophy size={16} className="text-yellow-500"/> 100 XP</span>
-            <span className="flex items-center gap-2"><Clock size={16} className="text-blue-400"/> 5 Mins</span>
-          </div>
-          <Button size="lg" onClick={handleStart} className="w-full sm:w-auto px-12 h-14 text-lg">Start Quiz</Button>
-        </Card>
-      ) : showResult ? (
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
-          <Card className="p-12 border-primary/30 bg-primary/5">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-emerald-400 to-emerald-600 mx-auto flex items-center justify-center text-white mb-6 shadow-lg shadow-emerald-500/20">
-              <Trophy size={48} />
-            </div>
-            <h2 className="text-4xl font-bold text-white mb-2">Quiz Completed!</h2>
-            <p className="text-muted-foreground text-lg mb-8">You earned +100 XP</p>
-            
-            <div className="flex justify-center items-end gap-2 mb-10">
-              <span className="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500">
-                {Math.round((score / dummyQuestions.length) * 100)}%
-              </span>
-              <span className="text-xl text-muted-foreground mb-2 pb-1">Score</span>
-            </div>
-            
-            <div className="flex gap-4 justify-center">
-              <Button variant="outline" size="lg" onClick={() => window.location.reload()}>Retake Quiz</Button>
-              <Button size="lg">Review Answers</Button>
-            </div>
-          </Card>
-        </motion.div>
-      ) : (
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-primary uppercase tracking-wider">Question {currentQ + 1} of {dummyQuestions.length}</span>
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-              <Clock size={14} className="text-orange-400 animate-pulse" /> 04:59
-            </div>
-          </div>
-          
-          {/* Progress Bar */}
-          <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-            <motion.div 
-              className="h-full bg-gradient-to-r from-primary to-purple-500"
-              initial={{ width: `${(currentQ / dummyQuestions.length) * 100}%` }}
-              animate={{ width: `${((currentQ + 1) / dummyQuestions.length) * 100}%` }}
-              transition={{ duration: 0.5 }}
-            />
-          </div>
-
-          {/* Question Card */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentQ}
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -20, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="p-8 md:p-10">
-                <h3 className="text-2xl font-semibold text-white mb-8 leading-relaxed">
-                  {dummyQuestions[currentQ].question}
-                </h3>
-                
-                <div className="space-y-4">
-                  {dummyQuestions[currentQ].options.map((opt, i) => {
-                    const isSelected = selected === i;
-                    const isCorrect = i === dummyQuestions[currentQ].correct;
-                    const showStatus = selected !== null;
-                    
-                    let bgClass = "bg-white/5 hover:bg-white/10 border-white/10 text-muted-foreground hover:text-white";
-                    if (showStatus) {
-                      if (isCorrect) bgClass = "bg-emerald-500/20 border-emerald-500/50 text-emerald-400";
-                      else if (isSelected) bgClass = "bg-red-500/20 border-red-500/50 text-red-400";
-                      else bgClass = "bg-white/5 border-white/5 text-muted-foreground opacity-50";
-                    }
-
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => handleSelect(i)}
-                        disabled={showStatus}
-                        className={`w-full text-left p-5 rounded-xl border transition-all duration-300 flex items-center justify-between group ${bgClass}`}
-                      >
-                        <span className="font-medium">{opt}</span>
-                        {showStatus && isCorrect && <CheckCircle2 size={20} className="text-emerald-400" />}
-                        {showStatus && isSelected && !isCorrect && <XCircle size={20} className="text-red-400" />}
-                        {!showStatus && <div className="w-5 h-5 rounded-full border border-white/20 group-hover:border-primary transition-colors" />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </Card>
-            </motion.div>
-          </AnimatePresence>
+    <motion.div {...pageTransition} className="max-w-7xl mx-auto space-y-8 pb-12">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-br from-primary/10 to-transparent p-6 rounded-2xl border border-primary/10">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
+            <BrainCircuit className="text-primary" size={32} />
+            Quiz Gateway
+          </h2>
+          <p className="text-muted-foreground">Select a document to test your knowledge with an adaptive AI quiz.</p>
         </div>
+        <Link 
+          to={ROUTES.UPLOAD}
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-bold transition-all bg-white text-black hover:bg-white/90 h-12 px-6 shadow-lg gap-2 shrink-0"
+        >
+          Upload Material
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+             <Card key={i} className="animate-pulse">
+               <CardContent className="p-6 h-48 bg-white/5" />
+             </Card>
+          ))}
+        </div>
+      ) : error ? (
+        <EmptyState title="Error Loading Quizzes" description={error} />
+      ) : documents.length === 0 ? (
+        <EmptyState 
+          icon={BookOpen} 
+          title="No Learning Materials" 
+          description="Upload your first document to generate adaptive quizzes." 
+          action={
+            <Link to={ROUTES.UPLOAD} className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-colors">
+              Upload Document
+            </Link>
+          }
+        />
+      ) : (
+        <>
+          {/* Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full sm:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search topics or documents..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl h-12 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
+              />
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Filter size={16} className="text-muted-foreground hidden sm:block" />
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="bg-white/5 border border-white/10 rounded-xl h-12 px-4 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none flex-1 sm:w-auto"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Grid */}
+          <AnimatePresence mode="popLayout">
+            {filteredDocuments.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredDocuments.map((doc, i) => (
+                  <motion.div
+                    key={doc.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2, delay: i * 0.05 }}
+                  >
+                    <Link to={`/documents/${doc.id}?tab=quiz`} className="block h-full">
+                      <Card className="h-full hover:border-primary/50 hover:bg-white/[0.03] transition-all group flex flex-col">
+                        <CardHeader className="pb-3 flex-1">
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                              <FileText size={18} className="text-blue-400 group-hover:scale-110 transition-transform" />
+                            </div>
+                            <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full shrink-0">
+                              Ready
+                            </span>
+                          </div>
+                          <CardTitle className="text-lg line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                            {doc.filename}
+                          </CardTitle>
+                          <p className="text-sm text-muted-foreground mt-2 flex items-center gap-1">
+                            <Clock size={14} /> {new Date(doc.created_at).toLocaleDateString()}
+                          </p>
+                        </CardHeader>
+                        <CardContent className="pt-0 pb-4">
+                           <div className="w-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white flex items-center justify-center gap-2 h-10 rounded-lg font-medium text-sm transition-all">
+                              Start Quiz <Target size={16} />
+                           </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="col-span-full">
+                 <EmptyState 
+                   icon={Search} 
+                   title="No Results Found" 
+                   description={`No documents matched "${searchQuery}".`}
+                 />
+               </motion.div>
+            )}
+          </AnimatePresence>
+        </>
       )}
     </motion.div>
   )

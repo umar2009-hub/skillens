@@ -237,6 +237,59 @@ const aiService = {
         if (!q.explanation || typeof q.explanation !== 'string') throw new Error(`Validation Failed: 'explanation' missing in question ${index}`);
       });
     }
+  },
+
+  /**
+   * Generates a streaming text response (Server-Sent Events compatible)
+   * Used strictly for the Personal AI Mentor.
+   */
+  generateTextStream: async ({ prompt, res, retryCount = 0 }) => {
+    let modelName;
+    if (retryCount === 0) {
+      modelName = AI_MODELS.DEFAULT_MODEL; // Mentor usually works well with default model
+    } else {
+      modelName = AI_MODELS.FALLBACK_MODELS[retryCount % AI_MODELS.FALLBACK_MODELS.length];
+    }
+
+    try {
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY is missing from environment variables.");
+      }
+
+      logger.info(`[MentorStream] Starting AI generation (Retry: ${retryCount}, Model: ${modelName})`);
+
+      const model = genAI.getGenerativeModel({ 
+        model: modelName
+      });
+      
+      const result = await model.generateContentStream(prompt);
+      
+      let fullResponse = '';
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        fullResponse += chunkText;
+        // Send chunk to client as SSE
+        res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+      }
+      
+      logger.info(`[MentorStream] Stream completed successfully with ${modelName}`);
+      return fullResponse;
+
+    } catch (error) {
+      logger.error(`[MentorStream] AI Generation Error with ${modelName}:`, error.message);
+      
+      const isRateLimit = error.status === 429 || error.status === 503 || error.message.includes('429') || error.message.includes('Quota');
+
+      if (retryCount < AI_MODELS.MAX_RETRIES) {
+        const backoffMs = Math.pow(2, retryCount) * 2000;
+        logger.info(`[MentorStream] ${isRateLimit ? 'Rate limit hit' : 'Error'}. Waiting ${backoffMs}ms before retrying...`);
+        
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        return aiService.generateTextStream({ prompt, res, retryCount: retryCount + 1 });
+      }
+      
+      throw error;
+    }
   }
 };
 

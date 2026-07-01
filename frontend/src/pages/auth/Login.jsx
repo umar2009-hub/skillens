@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import { AuthCard } from '@/components/auth/AuthCard';
 import { AuthHeader } from '@/components/auth/AuthHeader';
@@ -36,11 +37,15 @@ export function Login() {
   };
 
   return (
-    <AuthCard>
-      <AuthHeader 
-        title="Welcome back" 
-        description="Enter your credentials to access your account." 
-      />
+    <div className="w-full relative">
+      <Link to={ROUTES.HOME} className="absolute -top-12 left-0 text-muted-foreground hover:text-white flex items-center gap-2 text-sm font-medium transition-colors">
+        <ArrowLeft size={16} /> Back to Home
+      </Link>
+      <AuthCard>
+        <AuthHeader 
+          title="Welcome back" 
+          description="Enter your credentials to access your account." 
+        />
       
       <AuthError error={error} />
       
@@ -94,5 +99,6 @@ export function Login() {
         </Link>
       </p>
     </AuthCard>
+    </div>
   );
 }

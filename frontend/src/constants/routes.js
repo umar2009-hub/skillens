@@ -9,6 +9,8 @@ export const ROUTES = {
   MENTOR: '/mentor',
   ANALYTICS: '/analytics',
   QUIZ: '/quiz',
+  REVISION: '/revision',
   SETTINGS: '/settings',
+  DOCUMENTS: '/documents',
   DOCUMENT: '/documents/:id'
 };

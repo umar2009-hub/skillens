@@ -141,28 +141,63 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-24 bg-background relative z-10 border-t border-white/5">
+      {/* Dynamic Features Showcase */}
+      <section className="py-24 bg-background relative z-10 border-t border-white/5 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-white/5">
-            {[
-              { value: "50k+", label: "Active Learners" },
-              { value: "2M+", label: "Documents Analyzed" },
-              { value: "98%", label: "Satisfaction Rate" },
-              { value: "3x", label: "Faster Learning" }
-            ].map((stat, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="text-center px-4"
-              >
-                <div className="text-4xl md:text-5xl font-extrabold text-white mb-2">{stat.value}</div>
-                <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</div>
-              </motion.div>
-            ))}
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div {...fadeInUp} className="space-y-6">
+              <h2 className="text-3xl md:text-5xl font-bold leading-tight">
+                Designed for <span className="text-primary">deep understanding</span>
+              </h2>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                SkillLens doesn't just summarize text. It builds a comprehensive knowledge graph of your material, automatically identifying key concepts, generating adaptive flashcards, and testing your retention with intelligent quizzes.
+              </p>
+              <ul className="space-y-4 pt-4">
+                {[
+                  "Context-aware AI mentoring",
+                  "Spaced repetition algorithms",
+                  "Automated progress tracking",
+                  "Beautiful, distraction-free interface"
+                ].map((item, i) => (
+                  <motion.li 
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-center gap-3 text-white font-medium"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0">
+                      <ChevronRight size={14} />
+                    </div>
+                    {item}
+                  </motion.li>
+                ))}
+              </ul>
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="relative aspect-square md:aspect-video rounded-2xl border border-white/10 bg-white/5 overflow-hidden shadow-2xl flex items-center justify-center group perspective-1000"
+            >
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-purple-500/20 mix-blend-overlay group-hover:opacity-50 transition-opacity duration-700" />
+              {/* Animated UI Mockup elements */}
+              <div className="relative z-10 w-3/4 h-3/4 border border-white/10 rounded-xl bg-background/80 backdrop-blur-md shadow-2xl p-6 flex flex-col gap-4 transform group-hover:-translate-y-2 group-hover:rotate-1 transition-all duration-500">
+                <div className="w-1/3 h-4 bg-white/10 rounded-full animate-pulse" />
+                <div className="w-full h-24 bg-white/5 rounded-lg border border-white/5 flex items-center justify-center overflow-hidden relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+                  <Brain className="text-primary/50 w-10 h-10 animate-bounce" />
+                </div>
+                <div className="flex gap-2 h-16">
+                  <div className="w-1/2 bg-white/5 rounded-lg border border-white/5" />
+                  <div className="w-1/2 bg-white/5 rounded-lg border border-white/5" />
+                </div>
+              </div>
+              <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-primary/30 blur-[50px] rounded-full" />
+              <div className="absolute -top-10 -left-10 w-40 h-40 bg-purple-500/30 blur-[50px] rounded-full" />
+            </motion.div>
           </div>
         </div>
       </section>

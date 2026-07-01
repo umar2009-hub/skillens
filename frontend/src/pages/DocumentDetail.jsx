@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageTransition } from '@/constants/animations';
 import { UploadSuccessState } from '@/components/upload/UploadSuccessState';
@@ -12,11 +12,16 @@ import { useDocumentFlashcards } from '@/hooks/useDocumentFlashcards';
 import { FlashcardsViewer } from '@/components/document/FlashcardsViewer';
 import { useDocumentQuiz } from '@/hooks/useDocumentQuiz';
 import { QuizViewer } from '@/components/document/QuizViewer';
+import { useLearningDNA } from '@/hooks/useLearningDNA';
+import { LearningDNA } from '@/components/dashboard/LearningDNA';
+import { PersonalAIMentor } from '@/components/document/PersonalAIMentor';
+import { Activity, MessageSquare } from 'lucide-react';
 
 export function DocumentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('notes');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'notes');
 
   return (
     <motion.div {...pageTransition} className="max-w-5xl mx-auto relative min-h-[80vh] pt-10 px-4 md:px-0">
@@ -63,6 +68,22 @@ export function DocumentDetail() {
           >
             <BookOpen size={18} /> Adaptive Quiz
           </button>
+          <button
+            onClick={() => setActiveTab('dna')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'dna' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-muted-foreground hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Activity size={18} /> Learning DNA
+          </button>
+          <button
+            onClick={() => setActiveTab('mentor')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'mentor' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-muted-foreground hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <MessageSquare size={18} /> AI Mentor
+          </button>
         </div>
 
         <div className="mt-8">
@@ -80,6 +101,16 @@ export function DocumentDetail() {
             {activeTab === 'quiz' && (
               <motion.div key="quiz" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                 <QuizSection documentId={id} />
+              </motion.div>
+            )}
+            {activeTab === 'dna' && (
+              <motion.div key="dna" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                <DNASection documentId={id} setActiveTab={setActiveTab} />
+              </motion.div>
+            )}
+            {activeTab === 'mentor' && (
+              <motion.div key="mentor" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-4xl mx-auto">
+                <PersonalAIMentor documentId={id} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -113,4 +144,25 @@ function FlashcardsSection({ documentId }) {
 function QuizSection({ documentId }) {
   const quizHook = useDocumentQuiz(documentId);
   return <QuizViewer documentId={documentId} {...quizHook} />;
+}
+
+function DNASection({ documentId, setActiveTab }) {
+  const { dna, loading, fetchDocumentDNA } = useLearningDNA();
+  
+  React.useEffect(() => {
+    fetchDocumentDNA(documentId);
+  }, [documentId, fetchDocumentDNA]);
+
+  if (loading && !dna) {
+    return <div className="text-center py-20 text-muted-foreground">Loading Learning DNA...</div>;
+  }
+
+  return (
+    <LearningDNA 
+      dna={dna}
+      onStudyGuide={() => setActiveTab('notes')}
+      onQuiz={() => setActiveTab('quiz')}
+      onFlashcards={() => setActiveTab('flashcards')}
+    />
+  );
 }

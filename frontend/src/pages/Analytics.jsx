@@ -1,129 +1,147 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Clock, BookOpen, Target, Flame, Brain, Layers, Activity } from 'lucide-react';
 import { pageTransition } from '@/constants/animations';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { TrendingUp, Target, Clock, Brain } from 'lucide-react';
-
-const weeklyData = [
-  { name: 'Mon', score: 65 }, { name: 'Tue', score: 72 }, { name: 'Wed', score: 85 },
-  { name: 'Thu', score: 78 }, { name: 'Fri', score: 90 }, { name: 'Sat', score: 95 }, { name: 'Sun', score: 88 },
-];
-
-const topicData = [
-  { name: 'React', value: 400 },
-  { name: 'Node.js', value: 300 },
-  { name: 'Python', value: 300 },
-  { name: 'SQL', value: 200 },
-];
-const COLORS = ['hsl(var(--primary))', '#8b5cf6', '#10b981', '#f59e0b'];
+import { analyticsService } from '@/services/analytics.service';
+import { StatCard } from '@/components/analytics/StatCard';
+import { ActivityChart } from '@/components/analytics/ActivityChart';
+import { KnowledgeGrowthChart } from '@/components/analytics/KnowledgeGrowthChart';
+import { StudyDistributionChart } from '@/components/analytics/StudyDistributionChart';
+import { TopicStrengthCard } from '@/components/analytics/TopicStrengthCard';
 
 export function Analytics() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        const result = await analyticsService.getDashboardAnalytics();
+        setData(result);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground text-sm font-medium animate-pulse">Calculating insights...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto text-center py-20">
+        <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Activity size={32} />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">Failed to load analytics</h2>
+        <p className="text-muted-foreground mb-6">{error}</p>
+        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const { overview, performance, activity, topics, charts } = data;
+
+  // Stagger container
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <motion.div {...pageTransition} className="max-w-7xl mx-auto space-y-8 pb-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <motion.div {...pageTransition} className="max-w-6xl mx-auto space-y-8 pb-20">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white mb-1">Analytics Overview</h2>
-          <p className="text-muted-foreground">Deep insights into your learning patterns and progress.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Learning Analytics</h1>
+          <p className="text-muted-foreground">Detailed insights into your study habits and progress.</p>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {[
-          { title: "Average Score", value: "85%", icon: Target, trend: "+5%", color: "text-blue-400" },
-          { title: "Time Spent", value: "124h", icon: Clock, trend: "+12h", color: "text-green-400" },
-          { title: "Topics Mastered", value: "24", icon: Brain, trend: "+3", color: "text-purple-400" },
-          { title: "Learning Rate", value: "Fast", icon: TrendingUp, trend: "Top 10%", color: "text-orange-400" },
-        ].map((stat, i) => (
-          <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }}>
-            <Card className="hover:border-primary/30">
-              <CardContent className="p-6 flex flex-col justify-between h-full">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl bg-white/5 ${stat.color}`}>
-                    <stat.icon size={24} />
-                  </div>
-                  <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full">{stat.trend}</span>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                  <div className="text-sm font-medium text-muted-foreground">{stat.title}</div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+      {/* Overview Stats */}
+      <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div variants={itemVariants}>
+          <StatCard 
+            title="Total Study Time" 
+            value={`${overview.totalStudyTimeMinutes} min`} 
+            subtitle={`${overview.totalLearningSessions} sessions`}
+            icon={Clock} 
+            colorClass="text-blue-500 bg-blue-500" 
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <StatCard 
+            title="Average Accuracy" 
+            value={`${overview.averageQuizAccuracy}%`} 
+            subtitle={`From ${overview.quizAttempts} attempts`}
+            icon={Target} 
+            colorClass="text-emerald-500 bg-emerald-500" 
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <StatCard 
+            title="Current Streak" 
+            value={`${overview.currentStreak} Days`} 
+            subtitle={`Longest: ${overview.longestStreak} days`}
+            icon={Flame} 
+            colorClass="text-orange-500 bg-orange-500" 
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <StatCard 
+            title="Materials Studied" 
+            value={overview.pdfsStudied} 
+            subtitle={`${overview.flashcardsReviewed} cards reviewed`}
+            icon={BookOpen} 
+            colorClass="text-purple-500 bg-purple-500" 
+          />
+        </motion.div>
+      </motion.div>
+
+      {/* Charts Row 1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <KnowledgeGrowthChart data={performance.knowledgeGrowth} />
+        </div>
+        <div>
+          <StudyDistributionChart data={charts.distribution} />
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Performance Trend */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Performance Trend</CardTitle>
-            <p className="text-sm text-muted-foreground">Your average quiz scores over the past 7 days.</p>
-          </CardHeader>
-          <CardContent className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weeklyData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" stroke="#888" tickLine={false} axisLine={false} />
-                <YAxis stroke="#888" tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff' }}
-                />
-                <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={4} dot={{ r: 6, fill: "hsl(var(--background))", strokeWidth: 2 }} activeDot={{ r: 8, fill: "hsl(var(--primary))" }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Topic Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Topic Focus</CardTitle>
-            <p className="text-sm text-muted-foreground">Distribution of your study time.</p>
-          </CardHeader>
-          <CardContent className="h-[350px] flex flex-col">
-            <ResponsiveContainer width="100%" height="80%">
-              <PieChart>
-                <Pie data={topicData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                  {topicData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px', color: '#fff' }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap justify-center gap-3 mt-4">
-              {topicData.map((entry, index) => (
-                <div key={index} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                  {entry.name}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Activity Heatmap placeholder */}
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Weekly Activity Intensity</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" stroke="#888" tickLine={false} axisLine={false} />
-                <YAxis stroke="#888" tickLine={false} axisLine={false} />
-                <Tooltip 
-                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                />
-                <Bar dataKey="score" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} opacity={0.8} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* Topics & Activity Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <ActivityChart data={activity.recentDays} />
+        </div>
+        <div className="flex flex-col gap-6">
+          <TopicStrengthCard title="Strongest Topics" topics={topics.strongTopics} type="strong" />
+          <TopicStrengthCard title="Needs Review" topics={topics.weakTopics} type="weak" />
+        </div>
       </div>
     </motion.div>
-  )
+  );
 }

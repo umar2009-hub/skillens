@@ -16,6 +16,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { Upload } from '@/pages/Upload';
 import { AIMentor } from '@/pages/AIMentor';
 import { Analytics } from '@/pages/Analytics';
+import { RevisionPlanner } from '@/pages/RevisionPlanner';
 import { Quiz } from '@/pages/Quiz';
 import { Settings } from '@/pages/Settings';
 import { NotFound } from '@/pages/NotFound';
@@ -24,6 +25,7 @@ import { Register } from '@/pages/auth/Register';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { ResetPassword } from '@/pages/auth/ResetPassword';
 import { DocumentDetail } from '@/pages/DocumentDetail';
+import { DocumentsList } from '@/pages/DocumentsList';
 
 import { AuthProvider } from '@/contexts/AuthContext';
 
@@ -53,8 +55,10 @@ function App() {
             <Route path={ROUTES.UPLOAD} element={<Upload />} />
             <Route path={ROUTES.MENTOR} element={<AIMentor />} />
             <Route path={ROUTES.ANALYTICS} element={<Analytics />} />
+            <Route path={ROUTES.REVISION} element={<RevisionPlanner />} />
             <Route path={ROUTES.QUIZ} element={<Quiz />} />
             <Route path={ROUTES.SETTINGS} element={<Settings />} />
+            <Route path={ROUTES.DOCUMENTS} element={<DocumentsList />} />
             <Route path={ROUTES.DOCUMENT} element={<DocumentDetail />} />
           </Route>
         </Route>
