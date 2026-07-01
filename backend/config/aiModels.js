@@ -5,15 +5,14 @@
 
 module.exports = {
   // Model for small to medium payloads
-  DEFAULT_MODEL: 'gemini-flash-latest',
+  DEFAULT_MODEL: 'gemini-2.5-flash',
   
   // Faster, more token-efficient model for massive payloads
-  LARGE_CONTEXT_MODEL: 'gemini-pro-latest',
+  LARGE_CONTEXT_MODEL: 'gemini-2.5-flash',
   
   // Fallback chain when a model hits a 429 / 503 / 404 error
   FALLBACK_MODELS: [
-    'gemini-flash-latest', 
-    'gemini-pro-latest'
+    'gemini-2.5-flash'
   ],
   
   // Character threshold to switch from DEFAULT to LARGE_CONTEXT
