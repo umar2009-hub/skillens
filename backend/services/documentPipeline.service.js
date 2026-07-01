@@ -1,8 +1,6 @@
 const pdfService = require('./pdf.service');
-const aiService = require('./ai.service');
+const backgroundPipelineService = require('./backgroundPipeline.service');
 const summaryService = require('./summary.service');
-const AI_STAGES = require('../config/aiStages');
-const summaryPrompt = require('../prompts/summaryPrompt');
 const logger = require('../utils/logger');
 const { createClient } = require('@supabase/supabase-js');
 const config = require('../config');
@@ -33,125 +31,7 @@ const documentPipelineService = {
       // 2. Extract PDF Text (Sets DB status to text_extracted)
       extractedData = await pdfService.extractPdfText(documentId, storagePath, accessToken);
       
-      // 3. Mark as ai_processing
-      await userSupabase
-        .from('documents')
-        .update({
-          status: 'ai_processing',
-          processing_stage: 'Generating AI Assets',
-          processing_progress: 50
-        })
-        .eq('id', documentId);
-
-      // --- FEATURE: SUMMARY ---
-      try {
-        const aiSummaryResult = await aiService.generateStructuredOutput({
-          stage: AI_STAGES.SUMMARY,
-          text: extractedData.extractedText || '',
-          prompt: summaryPrompt
-        });
-        await summaryService.saveSummary(documentId, accessToken, {
-          userId,
-          ...aiSummaryResult.data,
-          model_name: aiSummaryResult.model_name,
-          processing_time_ms: aiSummaryResult.processing_time_ms,
-          status: 'completed',
-          retry_count: 0
-        });
-      } catch (aiError) {
-        logger.error(`[Pipeline] AI Summary Generation Failed for ${documentId}`, aiError);
-        await summaryService.saveSummary(documentId, accessToken, {
-          userId,
-          status: 'failed',
-          error_message: aiError.message,
-          retry_count: 1
-        });
-      }
-
-      // --- FEATURE: SMART NOTES ---
-      const notesService = require('./notes.service');
-      const notesPrompt = require('../prompts/notesPrompt');
-      
-      try {
-        const aiNotesResult = await aiService.generateStructuredOutput({
-          stage: AI_STAGES.NOTES,
-          text: extractedData.extractedText || '',
-          prompt: notesPrompt
-        });
-        await notesService.saveNotes(documentId, accessToken, {
-          userId,
-          ...aiNotesResult.data,
-          model_name: aiNotesResult.model_name,
-          processing_time_ms: aiNotesResult.processing_time_ms,
-          status: 'completed',
-          retry_count: 0
-        });
-      } catch (notesError) {
-        logger.error(`[Pipeline] AI Notes Generation Failed for ${documentId}`, notesError);
-        await notesService.saveNotes(documentId, accessToken, {
-          userId,
-          status: 'failed',
-          error_message: notesError.message,
-          retry_count: 1
-        });
-      }
-
-      // --- FEATURE: FLASHCARDS ---
-      const flashcardsService = require('./flashcards.service');
-      const flashcardsPrompt = require('../prompts/flashcardsPrompt');
-      
-      try {
-        const aiFlashcardsResult = await aiService.generateStructuredOutput({
-          stage: AI_STAGES.FLASHCARDS,
-          text: extractedData.extractedText || '',
-          prompt: flashcardsPrompt
-        });
-        await flashcardsService.saveFlashcards(documentId, accessToken, {
-          userId,
-          ...aiFlashcardsResult.data,
-          model_name: aiFlashcardsResult.model_name,
-          processing_time_ms: aiFlashcardsResult.processing_time_ms,
-          status: 'completed',
-          retry_count: 0
-        });
-      } catch (flashcardsError) {
-        logger.error(`[Pipeline] AI Flashcards Generation Failed for ${documentId}`, flashcardsError);
-        await flashcardsService.saveFlashcards(documentId, accessToken, {
-          userId,
-          status: 'failed',
-          error_message: flashcardsError.message,
-          retry_count: 1
-        });
-      }
-
-      // --- FEATURE: QUIZ ---
-      const quizService = require('./quiz.service');
-      const quizPrompt = require('../prompts/quizPrompt');
-      
-      try {
-        const aiQuizResult = await aiService.generateStructuredOutput({
-          stage: AI_STAGES.QUIZ,
-          text: extractedData.extractedText || '',
-          prompt: quizPrompt
-        });
-        await quizService.saveQuiz(documentId, accessToken, {
-          userId,
-          ...aiQuizResult.data,
-          model_name: aiQuizResult.model_name,
-          processing_time_ms: aiQuizResult.processing_time_ms,
-          status: 'completed',
-          retry_count: 0
-        });
-      } catch (quizError) {
-        logger.error(`[Pipeline] AI Quiz Generation Failed for ${documentId}`, quizError);
-        await quizService.saveQuiz(documentId, accessToken, {
-          userId,
-          status: 'failed',
-          error_message: quizError.message,
-          retry_count: 1
-        });
-      }
-      // 6. Mark Document as Completed (Pipeline finished)
+      // 3. Mark document as completed (Extraction finished)
       await userSupabase
         .from('documents')
         .update({
@@ -161,7 +41,25 @@ const documentPipelineService = {
         })
         .eq('id', documentId);
 
-      logger.info(`[Pipeline] Pipeline finished for ${documentId}`);
+      // 4. Create placeholder records for all AI modules with status='processing'
+      // This allows the frontend to show loading skeletons immediately
+      const notesService = require('./notes.service');
+      const flashcardsService = require('./flashcards.service');
+      const quizService = require('./quiz.service');
+      
+      await Promise.all([
+        summaryService.saveSummary(documentId, accessToken, { userId, status: 'processing' }),
+        notesService.saveNotes(documentId, accessToken, { userId, status: 'processing' }),
+        flashcardsService.saveFlashcards(documentId, accessToken, { userId, status: 'processing', cards: [] }),
+        quizService.saveQuiz(documentId, accessToken, { userId, status: 'processing', questions: [] })
+      ]);
+
+      // 5. Fire and forget the background AI generation
+      // Notice we DO NOT await this! It runs independently.
+      backgroundPipelineService.runBackgroundAI(documentId, userId, extractedData.extractedText || '', accessToken)
+        .catch(err => logger.error(`[Background Orchestration Error]`, err));
+
+      logger.info(`[Pipeline] Extraction finished and background AI spawned for ${documentId}`);
       
       return {
         documentId,

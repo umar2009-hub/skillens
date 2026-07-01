@@ -11,7 +11,9 @@ export function ProcessingCard({ docStats }) {
   // Real stats mapped from backend
   const status = docStats?.status || 'uploading';
   const processingStage = docStats?.processing_stage || 'Uploading document...';
-  const progress = docStats?.processing_progress || 0;
+  const realProgress = docStats?.processing_progress || 0;
+  
+  const [simulatedProgress, setSimulatedProgress] = useState(0);
 
   // Realtime elapsed timer
   useEffect(() => {
@@ -20,6 +22,39 @@ export function ProcessingCard({ docStats }) {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Sync real progress jumps
+  useEffect(() => {
+    if (realProgress > simulatedProgress) {
+      setSimulatedProgress(realProgress);
+    }
+  }, [realProgress, simulatedProgress]);
+
+  // Organic progress simulation
+  useEffect(() => {
+    if (status === 'completed') {
+      setSimulatedProgress(100);
+      return;
+    }
+    const isFailed = status === 'failed' || status === 'summary_failed';
+    if (isFailed) return;
+
+    const timer = setInterval(() => {
+      setSimulatedProgress(prev => {
+        // Cap at 95% unless completed
+        const maxAllowed = Math.min(realProgress + 30, 95);
+        if (prev < maxAllowed) {
+          const increment = Math.random() * 1.5 + 0.5; // organic jump
+          return Math.min(prev + increment, maxAllowed);
+        }
+        return prev;
+      });
+    }, 1500);
+
+    return () => clearInterval(timer);
+  }, [realProgress, status]);
+
+  const displayProgress = Math.floor(simulatedProgress);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -129,7 +164,7 @@ export function ProcessingCard({ docStats }) {
             </div>
             <div>
               <h3 className="text-xl font-bold text-white tracking-tight">
-                {isFailed ? 'Processing Failed' : 'AI Processing'}
+                {isFailed ? 'Processing Failed' : 'Analyzing Document'}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 {processingStage}
@@ -139,7 +174,7 @@ export function ProcessingCard({ docStats }) {
 
           <div className="space-y-3 pt-2">
             <div className="flex justify-between text-sm font-medium">
-              <span className="text-white">{progress}% Complete</span>
+              <span className="text-white">{displayProgress}% Complete</span>
               <span className="text-muted-foreground font-mono flex items-center gap-1.5">
                 <Clock size={14} />
                 {formatTime(elapsed)} elapsed
@@ -149,7 +184,7 @@ export function ProcessingCard({ docStats }) {
               <motion.div 
                 className={`h-full ${isFailed ? 'bg-red-500' : 'bg-primary'}`}
                 initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
+                animate={{ width: `${displayProgress}%` }}
                 transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
               />
             </div>

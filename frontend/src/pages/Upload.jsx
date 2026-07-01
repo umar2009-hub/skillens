@@ -15,8 +15,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { uploadService } from '@/services/upload.service';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export function Upload() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [files, setFiles] = useState([]);
   const [error, setError] = useState(null);
@@ -92,7 +94,7 @@ export function Upload() {
       .subscribe();
 
     try {
-      const MIN_LOADING_TIME = 3000; // ensures the UI doesn't flash too fast
+      const MIN_LOADING_TIME = 2000; 
       
       const [result] = await Promise.all([
         uploadService.extractDocument(docToExtract.id, docToExtract.storage_path),
@@ -101,12 +103,13 @@ export function Upload() {
       
       supabase.removeChannel(channel);
       
-      setDocStats(prev => ({ ...prev, id: result.documentId, status: 'completed' }));
-      setStatus('success');
+      // Extraction is complete! Background AI is now running.
+      // Navigate IMMEDIATELY to the document detail page.
+      navigate(`/documents/${result.documentId}`);
     } catch (err) {
       supabase.removeChannel(channel);
       console.error(err);
-      toast.error('Processing failed, but upload succeeded.');
+      toast.error('Upload succeeded, but processing failed.');
       setStatus('idle');
       return;
     }

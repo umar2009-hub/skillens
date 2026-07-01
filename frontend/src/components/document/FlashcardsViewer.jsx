@@ -7,7 +7,7 @@ import {
 import { Card } from '@/components/ui/Card';
 
 export function FlashcardsViewer({ 
-  flashcards, progress, loading, error, recordProgress, getHint, explainFurther 
+  documentId, flashcards, progress, loading, error, recordProgress, getHint, explainFurther 
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -144,21 +144,68 @@ export function FlashcardsViewer({
     }
   };
 
-  if (loading) {
+  const handleRetry = async () => {
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      const api = (await import('@/services/api')).default;
+      await api.post(`/documents/${documentId}/retry`, { module: 'flashcards' }, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
+    } catch (err) {
+      console.error("Retry failed", err);
+    }
+  };
+
+  if (loading && !flashcards) {
     return (
       <Card className="w-full bg-background/60 border-white/10 p-10 flex flex-col items-center justify-center min-h-[500px]">
         <Loader2 className="animate-spin text-primary mb-4" size={32} />
-        <p className="text-muted-foreground">Synthesizing adaptive flashcards...</p>
+        <p className="text-muted-foreground">Checking document flashcards...</p>
       </Card>
     );
   }
 
-  if (error || flashcards?.status === 'failed') {
+  if (error) {
     return (
       <Card className="w-full bg-red-500/5 border-red-500/20 p-10 flex flex-col items-center justify-center min-h-[500px]">
         <AlertCircle className="text-red-400 mb-4" size={32} />
         <p className="text-white font-medium mb-2">Failed to load flashcards</p>
-        <p className="text-red-400/80 text-sm text-center">{error || flashcards?.error_message}</p>
+        <p className="text-red-400/80 text-sm text-center">{error}</p>
+      </Card>
+    );
+  }
+
+  if (flashcards?.status === 'processing' || flashcards?.status === 'pending') {
+    return (
+      <Card className="w-full bg-background/60 border-white/10 p-12 flex flex-col items-center justify-center min-h-[500px] overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-emerald-600/5 animate-pulse" />
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-16 h-16 mb-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+            <Loader2 className="animate-spin text-emerald-400" size={32} />
+          </div>
+          <h3 className="text-2xl font-bold text-white tracking-tight mb-2">Creating Adaptive Flashcards</h3>
+          <p className="text-muted-foreground text-center max-w-sm">
+            We are extracting key concepts and generating an adaptive spaced-repetition deck just for you.
+          </p>
+          <div className="mt-8 relative w-64 h-40">
+             <div className="absolute inset-0 bg-white/5 border border-white/10 rounded-xl animate-pulse" />
+             <div className="absolute inset-0 bg-white/5 border border-white/10 rounded-xl translate-x-4 translate-y-4 -z-10 animate-pulse" style={{ animationDelay: '200ms' }} />
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (flashcards?.status === 'failed') {
+    return (
+      <Card className="w-full bg-background/60 border-white/10 p-10 flex flex-col items-center justify-center min-h-[500px]">
+        <AlertCircle className="text-red-400 mb-4" size={48} />
+        <p className="text-white font-medium mb-2">Flashcard Generation Failed</p>
+        <p className="text-red-400/80 text-sm text-center mb-6">{flashcards?.error_message || 'An unknown error occurred.'}</p>
+        <button onClick={handleRetry} className="px-6 py-2 rounded-full bg-primary text-white font-medium hover:bg-primary/90 transition-colors">
+          Retry Generation
+        </button>
       </Card>
     );
   }

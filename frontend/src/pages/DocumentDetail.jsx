@@ -130,6 +130,7 @@ function FlashcardsSection({ documentId }) {
   const { flashcards, progress, loading, error, recordProgress, getHint, explainFurther } = useDocumentFlashcards(documentId);
   return (
     <FlashcardsViewer 
+      documentId={documentId}
       flashcards={flashcards} 
       progress={progress}
       loading={loading} 

@@ -231,6 +231,7 @@ const documentController = {
   retryDocument: async (req, res) => {
     try {
       const { id } = req.params;
+      const { module = 'all' } = req.body || {};
       const accessToken = req.headers.authorization?.split(' ')[1];
       
       const { createClient } = require('@supabase/supabase-js');
@@ -239,10 +240,14 @@ const documentController = {
         global: { headers: { Authorization: `Bearer ${accessToken}` } }
       });
 
-      // 1. Fetch document to get storagePath
+      const { data: { user }, error: authError } = await userSupabase.auth.getUser();
+      if (authError || !user) throw new Error("Unauthorized");
+      const userId = user.id;
+
+      // Fetch document to get storagePath and extractedText
       const { data: doc, error: fetchError } = await userSupabase
         .from('documents')
-        .select('id, storage_path, status')
+        .select('id, storage_path, status, extracted_text')
         .eq('id', id)
         .single();
         
@@ -250,18 +255,26 @@ const documentController = {
         return res.status(404).json({ error: 'Document not found' });
       }
 
-      // 2. Set back to initializing
-      await userSupabase
-        .from('documents')
-        .update({ status: 'queued', processing_stage: 'Initializing retry...', processing_progress: 0 })
-        .eq('id', id);
+      if (module === 'all') {
+        // Retry everything, meaning full pipeline including extraction
+        await userSupabase
+          .from('documents')
+          .update({ status: 'queued', processing_stage: 'Initializing retry...', processing_progress: 0 })
+          .eq('id', id);
 
-      // 3. Kick off pipeline (fire and forget for frontend to listen via realtime)
-      documentPipelineService.processDocument(id, doc.storage_path, accessToken).catch(err => {
-         logger.error(`Retry pipeline failed for ${id}`, err);
-      });
+        documentPipelineService.processDocument(id, doc.storage_path, accessToken).catch(err => {
+           logger.error(`Retry pipeline failed for ${id}`, err);
+        });
+      } else {
+        // Specific module retry
+        // Fire and forget the background pipeline just for this module
+        const backgroundPipelineService = require('../services/backgroundPipeline.service');
+        backgroundPipelineService.runBackgroundAI(id, userId, doc.extracted_text || '', accessToken, module).catch(err => {
+           logger.error(`Retry module ${module} failed for ${id}`, err);
+        });
+      }
 
-      return res.status(200).json({ message: 'Retry initiated', documentId: id });
+      return res.status(200).json({ message: 'Retry initiated', documentId: id, module });
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }

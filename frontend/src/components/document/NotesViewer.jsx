@@ -41,11 +41,11 @@ export function NotesViewer({ notes, loading, error }) {
     return () => observer.disconnect();
   }, [notes, viewMode]);
 
-  if (loading) {
+  if (loading && !notes) {
     return (
       <Card className="w-full bg-background/60 border-white/10 p-10 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="animate-spin text-primary mb-4" size={32} />
-        <p className="text-muted-foreground">Synthesizing deep study notes...</p>
+        <p className="text-muted-foreground">Checking document notes...</p>
       </Card>
     );
   }
@@ -60,14 +60,55 @@ export function NotesViewer({ notes, loading, error }) {
     );
   }
 
+  if (notes?.status === 'processing' || notes?.status === 'pending') {
+    return (
+      <Card className="w-full bg-background/60 border-white/10 p-12 flex flex-col items-center justify-center min-h-[500px] overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-purple-600/5 animate-pulse" />
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-16 h-16 mb-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+            <Loader2 className="animate-spin text-primary" size={32} />
+          </div>
+          <h3 className="text-2xl font-bold text-white tracking-tight mb-2">Generating Study Guide</h3>
+          <p className="text-muted-foreground text-center max-w-sm">
+            Our AI is analyzing your document and building comprehensive, personalized study notes. This usually takes 15-30 seconds.
+          </p>
+          <div className="mt-8 space-y-4 w-full max-w-md">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-16 w-full bg-white/5 rounded-xl animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
+            ))}
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   if (!notes || notes.status !== 'completed' || !notes.sections) {
+    const handleRetry = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        const { data: { session } } = await supabase.auth.getSession();
+        const api = (await import('@/services/api')).default;
+        await api.post(`/documents/${documentId}/retry`, { module: 'notes' }, {
+          headers: { Authorization: `Bearer ${session?.access_token}` }
+        });
+        // Realtime will pick up the 'processing' state change automatically
+      } catch (err) {
+        console.error("Retry failed", err);
+      }
+    };
+
     return (
       <Card className="w-full bg-background/60 border-white/10 p-10 flex flex-col items-center justify-center min-h-[400px]">
         <BookOpen className="text-white/20 mb-4" size={48} />
-        <p className="text-white font-medium mb-2">No study notes available yet</p>
-        <p className="text-muted-foreground text-sm text-center">
-          {notes?.status === 'failed' ? 'Notes generation failed. Try retrying the document.' : 'Notes are either still generating or unavailable.'}
+        <p className="text-white font-medium mb-2">Study guide unavailable</p>
+        <p className="text-muted-foreground text-sm text-center mb-6">
+          {notes?.status === 'failed' ? 'Notes generation failed due to an error.' : 'Notes are currently unavailable.'}
         </p>
+        {notes?.status === 'failed' && (
+          <button onClick={handleRetry} className="px-6 py-2 rounded-full bg-primary text-white font-medium hover:bg-primary/90 transition-colors">
+            Retry Generation
+          </button>
+        )}
       </Card>
     );
   }

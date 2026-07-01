@@ -140,30 +140,82 @@ export function QuizViewer({ documentId, quizData, loading, error, session, star
     }
   };
 
-  if (loading) {
+  const handleRetry = async () => {
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      const api = (await import('@/services/api')).default;
+      await api.post(`/documents/${documentId}/retry`, { module: 'quiz' }, {
+        headers: { Authorization: `Bearer ${authSession?.access_token}` }
+      });
+    } catch (err) {
+      console.error("Retry failed", err);
+    }
+  };
+
+  if (loading && !quizData) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Generating Quiz Bank...</p>
+        <p className="text-muted-foreground">Checking quiz bank...</p>
       </div>
     );
   }
 
-  if (error || quizData?.status === 'failed') {
+  if (error) {
     return (
       <div className="p-8 text-center bg-red-500/10 border border-red-500/20 rounded-xl">
         <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-red-500 mb-2">Quiz Generation Failed</h3>
-        <p className="text-red-400/80">{error || quizData?.error_message}</p>
+        <p className="text-red-400/80">{error}</p>
       </div>
     );
   }
 
-  if (!quizData || quizData.status === 'processing') {
+  if (quizData?.status === 'processing' || quizData?.status === 'pending') {
+    return (
+      <div className="p-12 text-center bg-background/60 border border-white/10 rounded-2xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-purple-600/5 animate-pulse" />
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-16 h-16 mb-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+          <h3 className="text-2xl font-bold text-white tracking-tight mb-2">Generating Adaptive Quiz</h3>
+          <p className="text-muted-foreground text-center max-w-sm mb-8">
+            AI is analyzing your document to build a personalized quiz bank with varied difficulties and detailed explanations.
+          </p>
+          <div className="w-full max-w-md space-y-4">
+             <div className="h-24 w-full bg-white/5 rounded-xl animate-pulse" />
+             <div className="grid grid-cols-2 gap-4">
+               <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" style={{ animationDelay: '100ms' }} />
+               <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" style={{ animationDelay: '200ms' }} />
+               <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" style={{ animationDelay: '300ms' }} />
+               <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" style={{ animationDelay: '400ms' }} />
+             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (quizData?.status === 'failed') {
+    return (
+      <div className="p-8 text-center bg-red-500/10 border border-red-500/20 rounded-xl">
+        <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-red-500 mb-2">Quiz Generation Failed</h3>
+        <p className="text-red-400/80 mb-6">{quizData?.error_message || 'An unknown error occurred.'}</p>
+        <button onClick={handleRetry} className="px-6 py-2 rounded-full bg-primary text-white font-medium hover:bg-primary/90 transition-colors">
+          Retry Generation
+        </button>
+      </div>
+    );
+  }
+
+  if (!quizData?.questions || quizData.questions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">AI is building your personalized quiz bank...</p>
+        <p className="text-muted-foreground">No questions available yet...</p>
       </div>
     );
   }
