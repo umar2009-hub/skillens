@@ -3,16 +3,19 @@ require('dotenv').config();
 const requiredEnvVars = [
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY',
-  'GEMINI_API_KEY',
-  'FRONTEND_URL'
+  'GEMINI_API_KEY'
 ];
 
 const missingVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
 
 if (missingVars.length > 0) {
   console.error(`[FATAL ERROR] Missing required environment variables: ${missingVars.join(', ')}`);
-  console.error('Please configure these in your Northflank dashboard or local .env file.');
+  console.error('Please configure these in your deployment dashboard or local .env file.');
   process.exit(1);
+}
+
+if (!process.env.FRONTEND_URL) {
+  console.warn(`[WARNING] FRONTEND_URL is not set. CORS might block requests in production.`);
 }
 
 module.exports = {
