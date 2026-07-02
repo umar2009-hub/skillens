@@ -1,15 +1,24 @@
 const nodemailer = require('nodemailer');
 
-const createTransporter = () => {
+const createTransporter = async () => {
+  const ip = await new Promise((resolve) => {
+    require('dns').resolve4('smtp.gmail.com', (err, addresses) => {
+      if (err || !addresses || addresses.length === 0) resolve('smtp.gmail.com');
+      else resolve(addresses[0]);
+    });
+  });
+
   return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    host: ip,
     port: 465,
     secure: true,
-    family: 4, // Force IPv4 to prevent connection timeouts on platforms like Render that might drop IPv6 traffic
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_APP_PASSWORD,
     },
+    tls: {
+      servername: 'smtp.gmail.com'
+    }
   });
 };
 
@@ -20,7 +29,7 @@ const sendDeletionEmail = async (toEmail, otp) => {
     return { success: true, mocked: true };
   }
 
-  const transporter = createTransporter();
+  const transporter = await createTransporter();
 
   const mailOptions = {
     from: `"SkillLens Support" <${process.env.EMAIL_USER}>`,
@@ -63,7 +72,7 @@ const sendGenericOTPEmail = async (toEmail, otp, subject) => {
     return { success: true, mocked: true };
   }
 
-  const transporter = createTransporter();
+  const transporter = await createTransporter();
 
   const mailOptions = {
     from: `"SkillLens Support" <${process.env.EMAIL_USER}>`,
