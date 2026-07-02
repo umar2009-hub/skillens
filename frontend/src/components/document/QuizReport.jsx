@@ -80,7 +80,7 @@ export function QuizReport({ documentId, sessionId, getAnalytics }) {
       </div>
 
       {/* AI Analysis */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-green-500/10 border border-green-500/20 p-6 rounded-2xl">
           <h3 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5" /> Strengths
