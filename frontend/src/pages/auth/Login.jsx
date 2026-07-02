@@ -38,7 +38,7 @@ export function Login() {
 
   return (
     <div className="w-full relative">
-      <Link to={ROUTES.HOME} className="absolute -top-12 left-0 text-muted-foreground hover:text-white flex items-center gap-2 text-sm font-medium transition-colors">
+      <Link to={ROUTES.HOME} className="hidden md:flex absolute -top-12 left-0 text-muted-foreground hover:text-white items-center gap-2 text-sm font-medium transition-colors">
         <ArrowLeft size={16} /> Back to Home
       </Link>
       <AuthCard>

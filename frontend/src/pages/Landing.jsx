@@ -57,17 +57,17 @@ export function Landing() {
                 <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Link to="#how-it-works" className="w-full sm:w-auto">
+            <a href="#how-it-works" className="w-full sm:w-auto">
               <Button size="lg" variant="secondary" className="w-full text-base">
                 See How it Works
               </Button>
-            </Link>
+            </a>
           </div>
         </motion.div>
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-background relative z-10 border-t border-white/5">
+      <section id="features" className="py-24 bg-background relative z-10 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div {...fadeInUp} className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything you need to master any topic</h2>
