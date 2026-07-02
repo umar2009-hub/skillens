@@ -162,7 +162,7 @@ export function Register() {
           <>
             <AuthHeader 
               title="Verify your email" 
-              description={`We sent a 6-digit confirmation code to ${email}`} 
+              description={`We sent an 8-digit confirmation code to ${email}`} 
             />
             
             <AuthError error={error} />
@@ -170,7 +170,7 @@ export function Register() {
             <form onSubmit={handleVerifyOTP} className="space-y-4 mt-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">
-                  6-Digit OTP Code
+                  8-Digit OTP Code
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -178,9 +178,9 @@ export function Register() {
                   </div>
                   <Input 
                     type="text" 
-                    placeholder="123456" 
+                    placeholder="12345678" 
                     className="pl-10 tracking-widest font-mono text-lg"
-                    maxLength={6}
+                    maxLength={8}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} // only allow numbers
                     required 
