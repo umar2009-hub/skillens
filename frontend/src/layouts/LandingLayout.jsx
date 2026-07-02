@@ -56,7 +56,7 @@ export function LandingLayout() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-white/5 text-center text-sm text-muted-foreground flex flex-col md:flex-row justify-between items-center gap-4">
-          <p>© {new Date().getFullYear()} SkillLens Inc. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Team Code4U. All rights reserved.</p>
           <div className="flex gap-4">
             <a href="https://github.com/umar2009-hub/skillens" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
           </div>

@@ -62,7 +62,7 @@ export function AuthLayout() {
         </div>
         
         <div className="relative z-10 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} SkillLens Inc. All rights reserved.
+          © {new Date().getFullYear()} Team Code4U. All rights reserved.
         </div>
       </div>
 
