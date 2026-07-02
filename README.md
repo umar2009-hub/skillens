@@ -40,3 +40,5 @@ SkillLens is an intelligent educational platform that transforms static PDFs int
 ## 🌍 Production Deployment
 
 SkillLens is fully optimized for production deployment. Please refer to the comprehensive [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) for step-by-step instructions on deploying the stack to Vercel and Render.
+
+##live link: https://skillens-five.vercel.app/
