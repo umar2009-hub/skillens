@@ -5,6 +5,7 @@ const createTransporter = () => {
     host: 'smtp.gmail.com',
     port: 465,
     secure: true,
+    family: 4, // Force IPv4 to prevent connection timeouts on platforms like Render that might drop IPv6 traffic
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_APP_PASSWORD,
