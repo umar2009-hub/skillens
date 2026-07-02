@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export function Settings() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,6 +20,10 @@ export function Settings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -63,6 +69,30 @@ export function Settings() {
       toast.error('Failed to change password: ' + error.message);
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletePassword) {
+      toast.error('Please enter your password to confirm deletion');
+      return;
+    }
+    
+    try {
+      setDeleteLoading(true);
+      const api = (await import('@/services/api')).default;
+      await api.post('/auth/delete-account', {
+        email: user.email,
+        password: deletePassword
+      });
+      
+      toast.success('Account successfully deleted.');
+      if (logout) await logout();
+      navigate('/');
+    } catch (error) {
+      toast.error(error.response?.data?.error || error.message || 'Failed to delete account.');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -145,6 +175,45 @@ export function Settings() {
             >
               {passwordLoading ? 'Updating...' : 'Update Password'}
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-500/20 bg-red-500/5">
+          <CardHeader>
+            <CardTitle className="text-red-400">Danger Zone</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground max-w-lg">
+              Once you delete your account, there is no going back. Please be certain. All your documents, notes, quizzes, and learning data will be permanently erased.
+            </p>
+            {showDeleteConfirm ? (
+              <div className="space-y-4 p-4 border border-red-500/20 rounded-lg bg-red-500/10">
+                <p className="text-sm font-medium text-white">Enter your password to confirm deletion.</p>
+                <div className="flex gap-3 max-w-xs">
+                  <Input 
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Enter password"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="destructive" onClick={handleConfirmDelete} disabled={deleteLoading || !deletePassword}>
+                    {deleteLoading ? 'Deleting...' : 'Delete My Account'}
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDeletePassword('');
+                  }} disabled={deleteLoading}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
+                Delete Account
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
