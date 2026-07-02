@@ -22,9 +22,8 @@ export function Register() {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [sessionToken, setSessionToken] = useState(null);
   
-  const { session } = useAuth();
+  const { register, session } = useAuth();
   const navigate = useNavigate();
 
   // If the user clicks the magic link in the email instead of typing the OTP,
@@ -46,18 +45,19 @@ export function Register() {
     setLoading(true);
     setError(null);
     try {
-      const api = (await import('@/services/api')).default;
-      const { data } = await api.post('/auth/register/request', {
-        email,
-        password,
-        name
-      });
+      const data = await register(email, password, name);
       
-      setSessionToken(data.sessionToken);
-      setStep('verify');
-      toast.success(data.message || 'OTP sent to your email!');
+      // If session exists, email confirmation is disabled in Supabase, user is logged in
+      if (data?.session) {
+        toast.success('Registration successful!');
+        navigate(ROUTES.DASHBOARD);
+      } else {
+        // Email confirmation is enabled, switch to OTP verification step
+        setStep('verify');
+        toast.success('Confirmation code sent to your email!');
+      }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to create account');
+      setError(err.message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -68,18 +68,17 @@ export function Register() {
     setLoading(true);
     setError(null);
     try {
-      const api = (await import('@/services/api')).default;
-      await api.post('/auth/register/confirm', {
-        sessionToken,
-        otp,
-        password,
-        name
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'signup'
       });
+      if (error) throw error;
       
-      toast.success('Account created successfully! Please sign in.');
-      setTimeout(() => navigate(ROUTES.LOGIN), 1500);
+      toast.success('Email verified successfully! Welcome to SkillLens.');
+      setTimeout(() => navigate(ROUTES.DASHBOARD), 1000);
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Invalid or expired code. Please try again.');
+      setError(err.message || 'Invalid or expired code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -163,7 +162,7 @@ export function Register() {
           <>
             <AuthHeader 
               title="Verify your email" 
-              description={`We sent a 6-digit confirmation code to ${email}`} 
+              description={`We sent an 8-digit confirmation code to ${email}`} 
             />
             
             <AuthError error={error} />
@@ -171,7 +170,7 @@ export function Register() {
             <form onSubmit={handleVerifyOTP} className="space-y-4 mt-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">
-                  6-Digit OTP Code
+                  8-Digit OTP Code
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -179,9 +178,9 @@ export function Register() {
                   </div>
                   <Input 
                     type="text" 
-                    placeholder="123456" 
+                    placeholder="12345678" 
                     className="pl-10 tracking-widest font-mono text-lg"
-                    maxLength={6}
+                    maxLength={8}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} // only allow numbers
                     required 
