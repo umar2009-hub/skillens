@@ -1,4 +1,10 @@
 const express = require('express');
+const dns = require('dns');
+
+// Force IPv4 for DNS resolution to fix Nodemailer ENETUNREACH errors on Render
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
