@@ -80,40 +80,11 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const register = async (email, password, fullName) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
-    });
-    if (error) throw error;
-
-    // Wait a brief moment for the database trigger to execute
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (data?.user) {
-      await fetchProfile(data.user.id);
-    }
-    
-    return data;
-  };
-
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     setProfile(null);
     toast.success('Logged out successfully');
-  };
-
-  const resetPassword = async (email) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) throw error;
   };
 
   const updatePassword = async (newPassword) => {
@@ -129,9 +100,7 @@ export function AuthProvider({ children }) {
     session,
     loading,
     login,
-    register,
     logout,
-    resetPassword,
     updatePassword,
     refreshProfile
   };

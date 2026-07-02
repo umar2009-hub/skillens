@@ -43,10 +43,10 @@ export function DocumentDetail() {
         <UploadSuccessState documentId={id} />
         
         {/* View Tabs */}
-        <div className="flex items-center gap-4 border-b border-white/10 pb-4">
+        <div className="flex items-center gap-2 sm:gap-4 border-b border-white/10 pb-4 overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <button
             onClick={() => setActiveTab('notes')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`flex-shrink-0 snap-start flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'notes' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-muted-foreground hover:text-white hover:bg-white/5'
             }`}
           >
@@ -54,7 +54,7 @@ export function DocumentDetail() {
           </button>
           <button
             onClick={() => setActiveTab('flashcards')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`flex-shrink-0 snap-start flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'flashcards' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-muted-foreground hover:text-white hover:bg-white/5'
             }`}
           >
@@ -62,7 +62,7 @@ export function DocumentDetail() {
           </button>
           <button
             onClick={() => setActiveTab('quiz')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`flex-shrink-0 snap-start flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'quiz' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-muted-foreground hover:text-white hover:bg-white/5'
             }`}
           >
@@ -70,7 +70,7 @@ export function DocumentDetail() {
           </button>
           <button
             onClick={() => setActiveTab('dna')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`flex-shrink-0 snap-start flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'dna' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-muted-foreground hover:text-white hover:bg-white/5'
             }`}
           >
@@ -78,7 +78,7 @@ export function DocumentDetail() {
           </button>
           <button
             onClick={() => setActiveTab('mentor')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`flex-shrink-0 snap-start flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'mentor' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-muted-foreground hover:text-white hover:bg-white/5'
             }`}
           >

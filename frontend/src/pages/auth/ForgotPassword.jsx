@@ -12,12 +12,13 @@ import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
 export function ForgotPassword() {
-  const [step, setStep] = useState('request'); // 'request' | 'verify' | 'reset'
+  const [step, setStep] = useState('request'); // 'request' | 'reset'
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [sessionToken, setSessionToken] = useState(null);
   const navigate = useNavigate();
 
   // Step 1: Request OTP
@@ -26,41 +27,19 @@ export function ForgotPassword() {
     setLoading(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) throw error;
-      setStep('verify');
-      toast.success('Recovery code sent to your email!');
-    } catch (err) {
-      setError(err.message || 'Failed to send recovery email');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 2: Verify OTP
-  const handleVerifyOTP = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: 'recovery'
-      });
-      if (error) throw error;
-      
-      // OTP is verified, user is now temporarily logged in to change password
+      const api = (await import('@/services/api')).default;
+      const { data } = await api.post('/auth/reset-password/request', { email });
+      setSessionToken(data.sessionToken);
       setStep('reset');
-      toast.success('Code verified! Please enter your new password.');
+      toast.success(data.message || 'Recovery code sent to your email!');
     } catch (err) {
-      setError(err.message || 'Invalid or expired code. Please try again.');
+      setError(err.response?.data?.error || err.message || 'Failed to send recovery email');
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 3: Update Password
+  // Step 2: Confirm OTP and Reset Password
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (newPassword.length < 6) {
@@ -70,13 +49,17 @@ export function ForgotPassword() {
     setLoading(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
+      const api = (await import('@/services/api')).default;
+      await api.post('/auth/reset-password/confirm', {
+        sessionToken,
+        otp,
+        newPassword
+      });
       
       toast.success('Password reset successfully! Redirecting...');
-      setTimeout(() => navigate(ROUTES.DASHBOARD), 1500);
+      setTimeout(() => navigate(ROUTES.LOGIN), 1500);
     } catch (err) {
-      setError(err.message || 'Failed to update password');
+      setError(err.response?.data?.error || err.message || 'Invalid OTP or failed to update password');
     } finally {
       setLoading(false);
     }
@@ -117,17 +100,17 @@ export function ForgotPassword() {
           </>
         )}
 
-        {step === 'verify' && (
+        {step === 'reset' && (
           <>
             <AuthHeader 
               title="Enter Recovery Code" 
-              description={`We sent an 8-digit code to ${email}`} 
+              description={`We sent a 6-digit code to ${email}`} 
             />
             <AuthError error={error} />
-            <form onSubmit={handleVerifyOTP} className="space-y-4 mt-4">
+            <form onSubmit={handleResetPassword} className="space-y-4 mt-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">
-                  8-Digit OTP Code
+                  6-Digit OTP Code
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -135,17 +118,25 @@ export function ForgotPassword() {
                   </div>
                   <Input 
                     type="text" 
-                    placeholder="12345678" 
+                    placeholder="123456" 
                     className="pl-10 tracking-widest font-mono text-lg"
-                    maxLength={8}
+                    maxLength={6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} // only allow numbers
                     required 
                   />
                 </div>
               </div>
+              <div className="pt-2">
+                <PasswordInput 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  showStrength={true}
+                  required
+                />
+              </div>
               <AuthButton type="submit" loading={loading} className="mt-6">
-                Verify Code
+                Update Password
               </AuthButton>
               <div className="text-center mt-4">
                 <button 
@@ -156,27 +147,6 @@ export function ForgotPassword() {
                   Didn't receive a code? Try again.
                 </button>
               </div>
-            </form>
-          </>
-        )}
-
-        {step === 'reset' && (
-          <>
-            <AuthHeader 
-              title="Create New Password" 
-              description="Enter your new password below." 
-            />
-            <AuthError error={error} />
-            <form onSubmit={handleResetPassword} className="space-y-4 mt-4">
-              <PasswordInput 
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                showStrength={true}
-                required
-              />
-              <AuthButton type="submit" loading={loading} className="mt-6">
-                Update Password
-              </AuthButton>
             </form>
           </>
         )}

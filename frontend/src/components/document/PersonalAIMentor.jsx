@@ -39,7 +39,7 @@ export function PersonalAIMentor({ documentId = 'global', fullHeight = false }) 
   };
 
   return (
-    <div className={`flex flex-col ${fullHeight ? 'h-full' : 'h-[700px] max-h-[80vh]'} bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl`}>
+    <div className={`flex flex-col ${fullHeight ? 'h-full' : 'h-[500px] md:h-[700px] max-h-[80vh]'} bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl`}>
       {/* Header */}
       <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
         <div className="flex items-center gap-3">
@@ -123,13 +123,13 @@ export function PersonalAIMentor({ documentId = 'global', fullHeight = false }) 
 
       {/* Smart Actions & Input */}
       <div className="p-4 border-t border-white/10 bg-black/40">
-        <div className="flex overflow-x-auto gap-2 pb-3 scrollbar-none no-scrollbar">
+        <div className="flex overflow-x-auto gap-2 pb-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {SMART_ACTIONS.map((action, idx) => (
             <button
               key={idx}
               onClick={() => handleSmartAction(action.prompt)}
               disabled={isStreaming}
-              className="flex-shrink-0 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs flex items-center gap-1.5 hover:bg-emerald-500/20 hover:border-emerald-500/30 hover:text-emerald-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-shrink-0 snap-start px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs flex items-center gap-1.5 hover:bg-emerald-500/20 hover:border-emerald-500/30 hover:text-emerald-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {action.icon} <span className="whitespace-nowrap">{action.label}</span>
             </button>

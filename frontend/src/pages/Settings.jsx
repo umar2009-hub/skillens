@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export function Settings() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,6 +20,12 @@ export function Settings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteSessionToken, setDeleteSessionToken] = useState(null);
+  const [otp, setOtp] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -63,6 +71,49 @@ export function Settings() {
       toast.error('Failed to change password: ' + error.message);
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  const handleRequestDelete = async () => {
+    try {
+      setDeleteLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      const api = (await import('@/services/api')).default;
+      const { data } = await api.post('/auth/request-delete', {}, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
+      setDeleteSessionToken(data.sessionToken);
+      toast.success(data.message || 'OTP sent! Please check your inbox.');
+    } catch (error) {
+      toast.error(error.response?.data?.error || error.message || 'Failed to request account deletion');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!otp || otp.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
+    
+    try {
+      setOtpLoading(true);
+      const api = (await import('@/services/api')).default;
+      await api.post('/auth/confirm-delete', {
+        sessionToken: deleteSessionToken,
+        otp
+      });
+      
+      // Logout and redirect on success
+      await supabase.auth.signOut();
+      if (signOut) signOut();
+      toast.success('Account successfully deleted.');
+      navigate('/');
+    } catch (error) {
+      toast.error(error.response?.data?.error || error.message || 'Invalid OTP or failed to delete account.');
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -145,6 +196,59 @@ export function Settings() {
             >
               {passwordLoading ? 'Updating...' : 'Update Password'}
             </Button>
+          </CardContent>
+        </Card>
+        <Card className="border-red-500/20 bg-red-500/5">
+          <CardHeader>
+            <CardTitle className="text-red-400">Danger Zone</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground max-w-lg">
+              Once you delete your account, there is no going back. Please be certain. All your documents, notes, quizzes, and learning data will be permanently erased.
+            </p>
+            {showDeleteConfirm && !deleteSessionToken ? (
+              <div className="space-y-4 p-4 border border-red-500/20 rounded-lg bg-red-500/10">
+                <p className="text-sm font-medium text-white">Are you absolutely sure?</p>
+                <div className="flex gap-3">
+                  <Button variant="destructive" onClick={handleRequestDelete} disabled={deleteLoading}>
+                    {deleteLoading ? 'Sending email...' : 'Yes, send deletion email'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={deleteLoading}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : deleteSessionToken ? (
+              <div className="space-y-4 p-4 border border-red-500/20 rounded-lg bg-red-500/10">
+                <p className="text-sm font-medium text-white">Enter the 6-digit OTP sent to your email.</p>
+                <div className="flex gap-3 max-w-xs">
+                  <Input 
+                    type="text"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="123456"
+                    className="text-center tracking-widest text-lg font-bold"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="destructive" onClick={handleConfirmDelete} disabled={otpLoading || otp.length !== 6}>
+                    {otpLoading ? 'Verifying...' : 'Verify & Delete Account'}
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    setDeleteSessionToken(null);
+                    setShowDeleteConfirm(false);
+                    setOtp('');
+                  }} disabled={otpLoading}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
+                Delete Account
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -273,7 +273,7 @@ export function NotesViewer({ notes, loading, error }) {
 
         {/* Header Controls */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sticky top-0 z-20 bg-background/80 backdrop-blur-md py-4 border-b border-white/5">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 custom-scrollbar hide-scrollbar-mobile">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {['study', 'focus', 'exam', 'revision'].map(mode => (
               <button
                 key={mode}
@@ -282,7 +282,7 @@ export function NotesViewer({ notes, loading, error }) {
                   if (mode === 'focus') collapseAll();
                   else expandAll();
                 }}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize whitespace-nowrap transition-colors ${
+                className={`flex-shrink-0 snap-start px-3 py-1.5 rounded-full text-xs font-medium capitalize whitespace-nowrap transition-colors ${
                   viewMode === mode 
                     ? 'bg-primary text-white' 
                     : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
@@ -330,7 +330,7 @@ export function NotesViewer({ notes, loading, error }) {
                 >
                   {/* Section Header */}
                   <div 
-                    className="p-6 flex items-start justify-between cursor-pointer select-none bg-gradient-to-r from-white/[0.02] to-transparent"
+                    className="p-4 sm:p-6 flex items-start justify-between cursor-pointer select-none bg-gradient-to-r from-white/[0.02] to-transparent"
                     onClick={() => toggleSection(idx)}
                   >
                     <div className="flex-1 pr-6">
@@ -380,7 +380,7 @@ export function NotesViewer({ notes, loading, error }) {
                         exit={{ height: 0, opacity: 0 }}
                         className="border-t border-white/5"
                       >
-                        <div className={`p-6 space-y-8 ${viewMode === 'focus' ? 'text-lg leading-loose' : 'text-base leading-relaxed'}`}>
+                        <div className={`p-4 sm:p-6 space-y-6 sm:space-y-8 ${viewMode === 'focus' ? 'text-lg leading-loose' : 'text-base leading-relaxed'}`}>
                           
                           {/* Main Explanation Block (Hidden in Revision Mode) */}
                           {!isRevisionMode && (

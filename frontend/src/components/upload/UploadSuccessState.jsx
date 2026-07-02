@@ -60,7 +60,7 @@ export function UploadSuccessState({ onReset, documentId }) {
       <Confetti />
       <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/10 to-transparent blur-3xl rounded-full" />
       
-      <Card className="relative p-8 md:p-10 bg-background/80 backdrop-blur-xl border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)] overflow-hidden">
+      <Card className="relative p-5 sm:p-8 md:p-10 bg-background/80 backdrop-blur-xl border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)] overflow-hidden">
         
         {/* Header */}
         <div className="text-center mb-10">
@@ -85,8 +85,8 @@ export function UploadSuccessState({ onReset, documentId }) {
             className="mb-10 text-left space-y-6"
           >
             {/* Executive Summary */}
-            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-white/5 border border-white/10 hover:border-emerald-500/30 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">
                 <BrainCircuit size={64} />
               </div>
               <h4 className="text-lg font-semibold text-emerald-400 mb-3 flex items-center gap-2">
@@ -99,7 +99,7 @@ export function UploadSuccessState({ onReset, documentId }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Study Time & Difficulty */}
-              <div className="p-5 rounded-2xl bg-white/5 border border-white/10 flex flex-col justify-center">
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors flex flex-col justify-center">
                 <h4 className="text-sm font-semibold text-muted-foreground mb-4">Learning Profile</h4>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -124,7 +124,7 @@ export function UploadSuccessState({ onReset, documentId }) {
               </div>
 
               {/* Topics */}
-              <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
                 <h4 className="text-sm font-semibold text-muted-foreground mb-4">Key Topics Detected</h4>
                 <div className="flex flex-wrap gap-2">
                   {summary.topics?.slice(0, 6).map((topic, idx) => (

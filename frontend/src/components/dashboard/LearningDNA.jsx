@@ -103,14 +103,14 @@ export function LearningDNA({ dna, onStudyGuide, onQuiz, onFlashcards }) {
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Activity className="text-primary w-8 h-8" /> Learning DNA
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Activity className="text-primary w-6 h-6 sm:w-8 sm:h-8" /> Learning DNA
           </h2>
           <p className="text-muted-foreground mt-1">Your personalized deterministic intelligence profile.</p>
         </div>
         <div className="text-right">
           <div className="text-sm text-muted-foreground mb-1">Knowledge Score</div>
-          <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">
+          <div className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">
             {dna.knowledge_score}
           </div>
         </div>
@@ -129,7 +129,7 @@ export function LearningDNA({ dna, onStudyGuide, onQuiz, onFlashcards }) {
         {/* Left Col: Insights & Topics */}
         <div className="md:col-span-2 space-y-6">
           
-          <div className="bg-[#111] border border-white/5 p-6 rounded-3xl shadow-2xl">
+          <div className="bg-[#111] border border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-2xl">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><BrainCircuit className="w-5 h-5 text-primary" /> Smart Insights</h3>
             <div className="space-y-4">
               {insights.length > 0 ? insights.map((insight, idx) => (
@@ -146,7 +146,7 @@ export function LearningDNA({ dna, onStudyGuide, onQuiz, onFlashcards }) {
           </div>
 
           {/* Topic Performance Radar */}
-          <div className="bg-[#111] border border-white/5 p-6 rounded-3xl shadow-2xl h-[400px] flex flex-col">
+          <div className="bg-[#111] border border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-2xl h-[350px] sm:h-[400px] flex flex-col">
             <h3 className="text-xl font-bold mb-2">Topic Mastery Map</h3>
             <p className="text-xs text-muted-foreground mb-4">Calculated from raw quiz accuracy.</p>
             <div className="flex-1 w-full relative">
@@ -166,7 +166,7 @@ export function LearningDNA({ dna, onStudyGuide, onQuiz, onFlashcards }) {
         {/* Right Col: Activity & Recommendations */}
         <div className="space-y-6">
           
-          <div className="bg-[#111] border border-white/5 p-6 rounded-3xl shadow-2xl">
+          <div className="bg-[#111] border border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-2xl">
             <h3 className="text-xl font-bold mb-4">Activity Stats</h3>
             <div className="space-y-3">
               <ActivityRow label="Quizzes Completed" value={dna.quizzes_completed} icon={CheckCircle2} />
@@ -176,7 +176,7 @@ export function LearningDNA({ dna, onStudyGuide, onQuiz, onFlashcards }) {
             </div>
           </div>
 
-          <div className="bg-primary/5 border border-primary/20 p-6 rounded-3xl shadow-2xl relative overflow-hidden">
+          <div className="bg-primary/5 border border-primary/20 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
             <h3 className="text-xl font-bold mb-4 text-primary">Next Steps</h3>
             <div className="space-y-4 relative z-10">
@@ -211,7 +211,7 @@ function MetricCard({ title, value, icon: Icon, color, bg, border }) {
   return (
     <motion.div 
       whileHover={{ y: -2 }}
-      className={`p-5 rounded-3xl border ${border} bg-[#111] relative overflow-hidden group`}
+      className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border ${border} bg-[#111] relative overflow-hidden group`}
     >
       <div className={`absolute top-0 right-0 w-24 h-24 ${bg} rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-110`} />
       <div className="flex flex-col relative z-10 h-full justify-between gap-4">

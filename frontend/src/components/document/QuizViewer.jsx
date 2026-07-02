@@ -247,13 +247,13 @@ export function QuizViewer({ documentId, quizData, loading, error, session, star
   return (
     <div className="max-w-3xl mx-auto">
       {/* Header Stats */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <span className="text-sm font-medium px-3 py-1 bg-white/5 rounded-full border border-white/10 whitespace-nowrap">
             {completedQuestions + 1} / {TOTAL_QUESTIONS_PER_SESSION}
           </span>
           <span className={cn(
-            "text-xs font-bold uppercase tracking-wider px-2 py-1 rounded",
+            "text-xs font-bold uppercase tracking-wider px-2 py-1 rounded whitespace-nowrap",
             difficulty === 'Easy' && 'bg-green-500/20 text-green-400',
             difficulty === 'Medium' && 'bg-blue-500/20 text-blue-400',
             difficulty === 'Hard' && 'bg-orange-500/20 text-orange-400',
@@ -262,9 +262,9 @@ export function QuizViewer({ documentId, quizData, loading, error, session, star
             {difficulty}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <Clock className="w-4 h-4" />
-          <span>Topic: {currentQuestion.topic}</span>
+        <div className="flex items-start sm:items-center gap-2 text-muted-foreground text-sm">
+          <Clock className="w-4 h-4 shrink-0 mt-0.5 sm:mt-0" />
+          <span className="leading-tight">Topic: {currentQuestion.topic}</span>
         </div>
       </div>
 
@@ -283,9 +283,9 @@ export function QuizViewer({ documentId, quizData, loading, error, session, star
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          className="bg-[#111] border border-white/10 rounded-2xl p-8"
+          className="bg-[#111] border border-white/10 rounded-2xl p-5 sm:p-8"
         >
-          <h3 className="text-2xl font-medium mb-8 leading-relaxed">
+          <h3 className="text-xl sm:text-2xl font-medium mb-6 sm:mb-8 leading-relaxed">
             {currentQuestion.question}
           </h3>
 
@@ -360,9 +360,9 @@ export function QuizViewer({ documentId, quizData, loading, error, session, star
           selectedAnswer ? (
             <div className="w-full flex flex-col gap-4">
               <p className="text-center text-muted-foreground text-sm font-medium">How confident are you?</p>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 {['Guessing', 'Unsure', 'Confident', 'Very Confident'].map(conf => (
-                  <Button key={conf} variant="outline" className="bg-white/5 hover:bg-white/10" onClick={() => handleConfidence(conf)}>
+                  <Button key={conf} variant="outline" className="bg-white/5 hover:bg-white/10 text-xs sm:text-sm px-2 sm:px-4 h-auto py-2 sm:py-3 whitespace-normal" onClick={() => handleConfidence(conf)}>
                     {conf}
                   </Button>
                 ))}

@@ -313,7 +313,7 @@ export function FlashcardsViewer({
               >
                 
                 {/* FRONT OF CARD */}
-                <Card className="absolute w-full h-full backface-hidden bg-background/80 backdrop-blur-xl border-white/10 flex flex-col p-8 hover:border-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.03)] transition-all">
+                <Card className="absolute w-full h-full backface-hidden bg-background/80 backdrop-blur-xl border-white/10 flex flex-col p-5 sm:p-8 hover:border-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.03)] transition-all">
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex gap-2">
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
@@ -338,7 +338,7 @@ export function FlashcardsViewer({
                   </div>
                   
                   <div className="flex-1 flex flex-col items-center justify-center text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight">
+                    <h2 className="text-xl sm:text-2xl md:text-4xl font-bold text-white tracking-tight leading-tight">
                       {currentCard.question}
                     </h2>
                   </div>
@@ -350,12 +350,12 @@ export function FlashcardsViewer({
                 </Card>
 
                 {/* BACK OF CARD */}
-                <Card className="absolute w-full h-full backface-hidden bg-background/90 backdrop-blur-xl border-primary/20 flex flex-col p-8 rotate-y-180 overflow-y-auto custom-scrollbar">
+                <Card className="absolute w-full h-full backface-hidden bg-background/90 backdrop-blur-xl border-primary/20 flex flex-col p-5 sm:p-8 rotate-y-180 overflow-y-auto custom-scrollbar">
                   <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8">
                     
                     <div>
                       <h4 className="text-xs uppercase tracking-widest text-primary/80 font-bold mb-3">Answer</h4>
-                      <p className="text-2xl md:text-3xl font-bold text-white leading-tight">
+                      <p className="text-lg sm:text-2xl md:text-3xl font-bold text-white leading-tight">
                         {currentCard.answer}
                       </p>
                     </div>
@@ -416,23 +416,23 @@ export function FlashcardsViewer({
                 >
                   <button 
                     onClick={() => handleConfidence('needs_revision')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium border transition-colors ${
                       cardProgress.confidence === 'needs_revision' 
                       ? 'bg-orange-500/20 border-orange-500/30 text-orange-300'
                       : 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20'
                     }`}
                   >
-                    <X size={16} className="text-orange-400" /> Needs Revision
+                    <X size={14} className="text-orange-400 sm:w-4 sm:h-4" /> Needs Revision
                   </button>
                   <button 
                     onClick={() => handleConfidence('knew_it')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium border transition-colors ${
                       cardProgress.confidence === 'knew_it' 
                       ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
                       : 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20'
                     }`}
                   >
-                    <Check size={16} className="text-emerald-400" /> I Knew This
+                    <Check size={14} className="text-emerald-400 sm:w-4 sm:h-4" /> I Knew This
                   </button>
                   
                   <div className="w-px h-6 bg-white/10 mx-2 hidden md:block" />
@@ -440,7 +440,7 @@ export function FlashcardsViewer({
                   <button 
                     onClick={handleGetExplanation}
                     disabled={isExplanationLoading}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-primary/10 border border-primary/20 text-primary-300 hover:bg-primary/20 transition-colors"
+                    className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium bg-primary/10 border border-primary/20 text-primary-300 hover:bg-primary/20 transition-colors"
                   >
                     {isExplanationLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                     Explain Further
