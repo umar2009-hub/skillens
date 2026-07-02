@@ -13,7 +13,10 @@ const app = express();
 app.use(helmet());
 // CORS Configuration
 const corsOptions = {
-  origin: config.env === 'production' ? config.frontendUrl : ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: function (origin, callback) {
+    // Allow all origins to prevent CORS errors in Vercel preview environments
+    callback(null, true);
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
